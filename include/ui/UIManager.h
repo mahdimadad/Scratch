@@ -12,6 +12,7 @@
 struct UIManager {
     RenderState rs;
     Runner runner;
+    bool pausedUI=false;
 };
 
 void handleEvent(UIManager& ui,Window& w, Project& project,Context& context, const SDL_Event& e);

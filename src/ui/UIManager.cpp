@@ -30,10 +30,12 @@ void handleEvent(UIManager& ui,Window& w, Project& project,Context& context, con
             return;
         }
         if (inRect(mx,my,ui.rs.pauseRect)) {
+            ui.pausedUI=true;
             pauseExecution(context);
             return;
         }
         if (inRect(mx,my,ui.rs.resumeRect)) {
+            ui.pausedUI=false;
             resumeExecution(context);
             return;
         }

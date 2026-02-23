@@ -38,7 +38,7 @@ int main() {
         while (SDL_PollEvent(&e)) {
             handleEvent(ui, w, project, context, e);
         }
-        renderAll(w.renderer, ui.rs, context);
+        renderAll(w.renderer, ui.rs, context, ui.pausedUI);
     }
 
     destroyWindow(w);
