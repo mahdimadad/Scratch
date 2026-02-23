@@ -32,6 +32,10 @@ static void appendBlockToQueue(Block *block, Context &context, std::vector<Block
         q.push_back(block);
         return;
     }
+    if (block->type == DefineFunction) {
+        context.functionTable[block->text] = block;
+        return;
+    }
     q.push_back(block);
 }
 void buildQueueForEvent(Project &project, EventType eventType, Context &context, Runner &runner) {
@@ -87,6 +91,16 @@ bool stepRunner(Context &context, Runner &runner) {
                 runner.queue.insert(runner.queue.begin() + runner.index, b->children[i]);
             }
             runner.queue.insert(runner.queue.begin() + runner.index + (int) b->children.size(), b);
+            continue;
+        }
+        if (b->type == CallFunction) {
+            std::string fname = b->text;
+            if (context.functionTable.count(fname)) {
+                Block *def = context.functionTable[fname];
+                for (int i = (int) def->children.size() - 1; i >= 0; i--) {
+                    runner.queue.insert(runner.queue.begin() + runner.index, def->children[i]);
+                }
+            }
             continue;
         }
         executeBlock(b, context);

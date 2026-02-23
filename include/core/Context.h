@@ -11,6 +11,7 @@ struct SpriteState {
 };
 struct Context {
     SpriteState sprite;
+    std::map<std::string, Block *> functionTable;
     map<string, int> variables;
     bool isRunning = true;
     int currentLine = 0;
