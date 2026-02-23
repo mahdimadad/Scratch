@@ -49,18 +49,13 @@
 #include <SDL2/SDL.h>
 
 static void buildDemoProject(Project& project) {
-    // GreenFlag -> Repeat(5){ Move(20) }
     Script s;
     s.eventType = GreenFlagClicked;
-
-    Block* move = new Block(Move);
+    for (int i=0; i<6; i++) {
+        Block* move = new Block(Move);
     move->parameters.push_back(20);
-
-    Block* rep = new Block(Repeat);
-    rep->parameters.push_back(5);
-    rep->children.push_back(move);
-
-    s.blocks.push_back(rep);
+        s.blocks.push_back(move);
+    }
     project.scripts.push_back(s);
 }
 

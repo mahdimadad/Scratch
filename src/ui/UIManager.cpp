@@ -15,6 +15,7 @@ void handleEvent(UIManager& ui,Window& w, Project& project,Context& context, con
         int mx=e.button.x;
         int my=e.button.y;
         if (inRect(mx,my,ui.rs.greenFlagRect)) {
+            ui.runner.active = false;
             runEvent(project,GreenFlagClicked,context);
             return;
         }
@@ -23,7 +24,9 @@ void handleEvent(UIManager& ui,Window& w, Project& project,Context& context, con
             if (!ui.runner.active) {
                 buildQueueForEvent(project,GreenFlagClicked,context,ui.runner);
             }
-            stepRunner(context,ui.runner);
+            if (ui.runner.active) {
+                stepRunner(context,ui.runner);
+            }
             return;
         }
         if (inRect(mx,my,ui.rs.pauseRect)) {
