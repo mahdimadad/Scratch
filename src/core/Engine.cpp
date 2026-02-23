@@ -8,6 +8,8 @@ static void executeRepeat(Block *block, Context &context);
 static void executeSetVariable(Block *block, Context &context);
 static void executeChangeVariable(Block *block, Context &context);
 void executeBlock(Block *block, Context &context) {
+    if (!context.isRunning)
+        return;
     switch (block->type) {
         case Move: executeMove(block, context);
             break;
@@ -25,6 +27,7 @@ void executeBlock(Block *block, Context &context) {
 }
 static void executeMove(Block *block, Context &context) {
     if (block->parameters.empty()) return;
+    context.currentLine++;
     int steps = block->parameters[0];
     int oldX = context.sprite.x;
     context.sprite.x += steps;
@@ -33,6 +36,7 @@ static void executeMove(Block *block, Context &context) {
 }
 static void executeTurn(Block *block, Context &context) {
     if (block->parameters.empty()) return;
+    context.currentLine++;
     int angle = block->parameters[0];
     int oldDir = context.sprite.direction;
     context.sprite.direction += angle;
@@ -47,6 +51,7 @@ static void executeRepeat(Block *block, Context &context) {
 static void executeSetVariable(Block *block, Context &context) {
     if (block->text.empty()) return;
     if (block->parameters.empty()) return;
+    context.currentLine++;
     string name = block->text;
     int value = block->parameters[0];
     int oldValue = context.variables[name];
@@ -57,6 +62,7 @@ static void executeSetVariable(Block *block, Context &context) {
 static void executeChangeVariable(Block *block, Context &context) {
     if (block->text.empty()) return;
     if (block->parameters.empty()) return;
+    context.currentLine++;
     string name = block->text;
     int delta = block->parameters[0];
     int oldValue = context.variables[name];
@@ -64,3 +70,5 @@ static void executeChangeVariable(Block *block, Context &context) {
     logMessage(context.currentLine, "CHANGE_VAR",
                "Changed " + name + " from " + to_string(oldValue) + " to " + to_string(context.variables[name]), INFO);
 }
+void pauseExecution(Context &context) { context.isRunning = false; }
+void resumeExecution(Context &context) { context.isRunning = true; }
