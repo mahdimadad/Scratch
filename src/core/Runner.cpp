@@ -24,8 +24,7 @@ static void appendBlockToQueue(Block *block, Context &context, std::vector<Block
         return;
     }
     if (block->type == If) {
-        if (!checkIfCondition(block, context))return;
-        for (Block *child: block->children) { appendBlockToQueue(child, context, q); }
+        q.push_back(block);
         return;
     }
     q.push_back(block);
@@ -41,13 +40,32 @@ void buildQueueForEvent(Project &project, EventType eventType, Context &context,
     }
 }
 bool stepRunner(Context &context, Runner &runner) {
-    if (!runner.active)return false;
-    if (!context.isRunning)return false;
-    if (runner.index >= (int) runner.queue.size())return false;
-    Block *b = runner.queue[runner.index];
-    runner.index++;
-    executeBlock(b, context);
-    return true;
+    if (!runner.active) return false;
+    if (!context.isRunning) return false;
+    while (runner.index < (int) runner.queue.size()) {
+        Block *b = runner.queue[runner.index];
+        runner.index++;
+        if (b->type == If) {
+            if (b->text.empty() || b->parameters.size() < 2) { continue; }
+            string name = b->text;
+            int op = b->parameters[0];
+            int rhs = b->parameters[1];
+            int lhs = context.variables[name];
+            bool ok = false;
+            if (op == 0) ok = (lhs == rhs);
+            if (op == 1) ok = (lhs > rhs);
+            if (op == 2) ok = (lhs < rhs);
+            if (!ok) continue;
+            for (int i = (int) b->children.size() - 1; i >= 0; i--) {
+                Block *child = b->children[i];
+                runner.queue.insert(runner.queue.begin() + runner.index, child);
+            }
+            continue;
+        }
+        executeBlock(b, context);
+        return true;
+    }
+    return false;
 }
 bool isRunnerDone(const Runner &runner) { return !runner.active || runner.index >= (int) runner.queue.size(); }
 static void appendBlockToQueue(Block *block, std::vector<Block *> &q) {

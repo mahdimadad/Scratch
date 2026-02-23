@@ -7,6 +7,7 @@ using namespace std;
 int main() {
     Context context;
     Project project;
+    context.sprite.direction = 90;
     Script script;
     script.eventType = GreenFlagClicked;
     Block *setv = new Block(SetVariable);
@@ -28,10 +29,12 @@ int main() {
     cout << "Queue size = " << runner.queue.size() << endl;
     cout << "Stepping..." << endl;
     while (stepRunner(context, runner)) {
-        cout << "Step executed -> X = " << context.sprite.x << " | score = " << context.variables["score"] << endl;
+        cout << "Step -> X=" << context.sprite.x << " Y=" << context.sprite.y << " dir=" << context.sprite.direction <<
+                " score=" << context.variables["score"] << endl;
     }
     cout << "\nDONE" << endl;
     cout << "Final X = " << context.sprite.x << endl;
+    cout << "Final Y = " << context.sprite.y << endl;
     cout << "Final score = " << context.variables["score"] << endl;
     return 0;
 }
