@@ -7,9 +7,9 @@ static void executeTurn(Block *block, Context &context);
 static void executeRepeat(Block *block, Context &context);
 static void executeSetVariable(Block *block, Context &context);
 static void executeChangeVariable(Block *block, Context &context);
+static void executeIf(Block *block, Context &context);
 void executeBlock(Block *block, Context &context) {
-    if (!context.isRunning)
-        return;
+    if (!context.isRunning)return;
     switch (block->type) {
         case Move: executeMove(block, context);
             break;
@@ -20,6 +20,8 @@ void executeBlock(Block *block, Context &context) {
         case SetVariable: executeSetVariable(block, context);
             break;
         case ChangeVariable: executeChangeVariable(block, context);
+            break;
+        case If: executeIf(block, context);
             break;
         default: cout << "Block type not implemented yet." << endl;
             break;
@@ -72,3 +74,19 @@ static void executeChangeVariable(Block *block, Context &context) {
 }
 void pauseExecution(Context &context) { context.isRunning = false; }
 void resumeExecution(Context &context) { context.isRunning = true; }
+static bool checkCondition(Block *block, Context &context) {
+    if (block->text.empty()) return false;
+    if (block->parameters.size() < 2) return false;
+    string name = block->text;
+    int op = block->parameters[0];
+    int rhs = block->parameters[1];
+    int lhs = context.variables[name];
+    if (op == 0) return lhs == rhs;
+    if (op == 1) return lhs > rhs;
+    if (op == 2) return lhs < rhs;
+    return false;
+}
+static void executeIf(Block *block, Context &context) {
+    if (!checkCondition(block, context))return;
+    for (Block *child: block->children) { executeBlock(child, context); }
+}
