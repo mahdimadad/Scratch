@@ -14,6 +14,12 @@ static void drawStage(SDL_Renderer* ren, const SDL_Rect& stage) {
     SDL_SetRenderDrawColor(ren,200,200,200,255);
     SDL_RenderDrawRect(ren,&stage);
 }
+static void drawButton(SDL_Renderer* ren, const SDL_Rect& r,int rr, int gg, int bb) {
+    SDL_SetRenderDrawColor(ren,rr,gg,bb,255);
+    SDL_RenderFillRect(ren,&r);
+    SDL_SetRenderDrawColor(ren,255,255,255,255);
+    SDL_RenderDrawRect(ren,&r);
+}
 static void drawSprite(SDL_Renderer* ren, const SDL_Rect& stage, const SpriteState& s) {
     if (!s.visible)return;
     SDL_Point p = toScreen(stage, s.x, s.y);
@@ -32,6 +38,11 @@ static void drawSprite(SDL_Renderer* ren, const SDL_Rect& stage, const SpriteSta
 void renderAll(SDL_Renderer* ren, const RenderState& rs,const Context& context) {
     SDL_SetRenderDrawColor(ren,25,25,30,255);
     SDL_RenderClear(ren);
+
+    drawButton(ren,rs.greenFlagRect,40,160,60);
+    drawButton(ren,rs.stepRect,80,80,200);
+    drawButton(ren,rs.pauseRect,200,80,80);
+    drawButton(ren,rs.resumeRect,80,200,120);
 
     drawStage(ren,rs.stageRect);
 

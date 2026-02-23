@@ -11,6 +11,8 @@ add_executable(Scratch
         src/ui/window.cpp
         include/ui/Renderer.h
         src/ui/Renderer.cpp
+        include/ui/UIManager.h
+        src/ui/UIManager.cpp
 )
 target_include_directories(Scratch PRIVATE include)
 target_link_libraries(Scratch -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer)

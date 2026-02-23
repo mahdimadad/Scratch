@@ -37,33 +37,49 @@
 // }
 
 #define SDL_MAIN_HANDLED
+
 #include "ui/Window.h"
+#include "ui/UIManager.h"
 #include "ui/Renderer.h"
 
+#include "core/Block.h"
 #include "core/Context.h"
+#include "core/Events.h"
 
 #include <SDL2/SDL.h>
+
+static void buildDemoProject(Project& project) {
+    // GreenFlag -> Repeat(5){ Move(20) }
+    Script s;
+    s.eventType = GreenFlagClicked;
+
+    Block* move = new Block(Move);
+    move->parameters.push_back(20);
+
+    Block* rep = new Block(Repeat);
+    rep->parameters.push_back(5);
+    rep->children.push_back(move);
+
+    s.blocks.push_back(rep);
+    project.scripts.push_back(s);
+}
 
 int main() {
     Window w;
     if (!initWindow(w, "Scratch UI - Sadra", 1000, 700)) return 1;
 
-    Context context;      // از core
-    RenderState rs;       // برای stage
+    Context context;
+    Project project;
+    buildDemoProject(project);
 
-    // برای تست: جای sprite
-    context.sprite.x = 0;
-    context.sprite.y = 0;
-    context.sprite.visible = true;
+    UIManager ui;
 
+    SDL_Event e;
     while (w.running) {
-        SDL_Event e;
         while (SDL_PollEvent(&e)) {
-            if (e.type == SDL_QUIT) w.running = false;
+            handleEvent(ui, w, project, context, e);
         }
-
-        // رندر بر اساس context
-        renderAll(w.renderer, rs, context);
+        renderAll(w.renderer, ui.rs, context);
     }
 
     destroyWindow(w);
