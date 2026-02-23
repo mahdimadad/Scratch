@@ -1,6 +1,7 @@
 #include "core/Runner.h"
 #include "core/Engine.h"
 #include "core/Context.h"
+#include <chrono>
 static bool checkIfCondition(Block *block, Context &context) {
     if (block->text.empty()) return false;
     if (block->parameters.size() < 2) return false;
@@ -39,14 +40,30 @@ void buildQueueForEvent(Project &project, EventType eventType, Context &context,
         for (Block *b: s.blocks) { appendBlockToQueue(b, context, runner.queue); }
     }
 }
+static unsigned long long nowMs() {
+    using namespace std::chrono;
+    return (unsigned long long) duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count();
+}
 bool stepRunner(Context &context, Runner &runner) {
     if (!runner.active) return false;
     if (!context.isRunning) return false;
+    if (runner.waitUntilMs > 0) {
+        if (nowMs() < runner.waitUntilMs) { return false; }
+        runner.waitUntilMs = 0;
+    }
     while (runner.index < (int) runner.queue.size()) {
         Block *b = runner.queue[runner.index];
         runner.index++;
+        if (b->type == Wait) {
+            if (!b->parameters.empty()) {
+                int seconds = b->parameters[0];
+                if (seconds < 0) seconds = 0;
+                runner.waitUntilMs = nowMs() + (unsigned long long) (seconds * 1000);
+            }
+            return false;
+        }
         if (b->type == If) {
-            if (b->text.empty() || b->parameters.size() < 2) { continue; }
+            if (b->text.empty() || b->parameters.size() < 2)continue;
             string name = b->text;
             int op = b->parameters[0];
             int rhs = b->parameters[1];
@@ -57,8 +74,7 @@ bool stepRunner(Context &context, Runner &runner) {
             if (op == 2) ok = (lhs < rhs);
             if (!ok) continue;
             for (int i = (int) b->children.size() - 1; i >= 0; i--) {
-                Block *child = b->children[i];
-                runner.queue.insert(runner.queue.begin() + runner.index, child);
+                runner.queue.insert(runner.queue.begin() + runner.index, b->children[i]);
             }
             continue;
         }
