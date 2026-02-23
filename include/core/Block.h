@@ -3,11 +3,12 @@
 #include <vector>
 #include <string>
 using namespace std;
-enum class BlockType { Move, Turn, Repeat, If, CustomFunctionCall };
+enum BlockType { Move, Turn, Repeat, If, CustomFunctionCall , SetVariable , ChangeVariable };
 struct Block {
     BlockType type;
     vector<Block *> children;
     vector<int> parameters;
+    string text;
     Block(BlockType t) { type = t; }
 };
 #endif
