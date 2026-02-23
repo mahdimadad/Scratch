@@ -28,6 +28,10 @@ static void appendBlockToQueue(Block *block, Context &context, std::vector<Block
         q.push_back(block);
         return;
     }
+    if (block->type == Forever) {
+        q.push_back(block);
+        return;
+    }
     q.push_back(block);
 }
 void buildQueueForEvent(Project &project, EventType eventType, Context &context, Runner &runner) {
@@ -76,6 +80,13 @@ bool stepRunner(Context &context, Runner &runner) {
             for (int i = (int) b->children.size() - 1; i >= 0; i--) {
                 runner.queue.insert(runner.queue.begin() + runner.index, b->children[i]);
             }
+            continue;
+        }
+        if (b->type == Forever) {
+            for (int i = (int) b->children.size() - 1; i >= 0; i--) {
+                runner.queue.insert(runner.queue.begin() + runner.index, b->children[i]);
+            }
+            runner.queue.insert(runner.queue.begin() + runner.index + (int) b->children.size(), b);
             continue;
         }
         executeBlock(b, context);
