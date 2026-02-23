@@ -5,6 +5,7 @@ add_executable(Scratch
         src/main.cpp
         src/core/Engine.cpp
         src/core/Logger.cpp
+        src/core/Events.cpp
 )
 target_include_directories(Scratch PRIVATE include)
 target_link_libraries(Scratch -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer)
