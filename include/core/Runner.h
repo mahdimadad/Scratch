@@ -5,11 +5,12 @@
 #include "Context.h"
 #include "Events.h"
 struct Runner {
+    unsigned long long waitUntilMs = 0;
     std::vector<Block *> queue;
     int index = 0;
     bool active = false;
 };
 void buildQueueForEvent(Project &project, EventType eventType, Context &context, Runner &runner);
 bool stepRunner(Context &context, Runner &runner);
-bool isRunnerDon(const Runner &runner);
+bool isRunnerDone(const Runner &runner);
 #endif

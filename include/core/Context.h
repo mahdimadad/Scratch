@@ -2,6 +2,7 @@
 #define CONTEXT_H
 #include <map>
 #include <string>
+#include "core/Block.h"
 using namespace std;
 struct SpriteState {
     int x = 0;
@@ -11,6 +12,7 @@ struct SpriteState {
 };
 struct Context {
     SpriteState sprite;
+    std::map<std::string, Block *> functionTable;
     map<string, int> variables;
     bool isRunning = true;
     int currentLine = 0;

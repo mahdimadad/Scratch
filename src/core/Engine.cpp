@@ -1,6 +1,8 @@
 #include "core/Engine.h"
 #include "core/Logger.h"
+#include "core/Utils.h"
 #include <iostream>
+#include <cmath>
 using namespace std;
 static void executeMove(Block *block, Context &context);
 static void executeTurn(Block *block, Context &context);
@@ -29,12 +31,18 @@ void executeBlock(Block *block, Context &context) {
 }
 static void executeMove(Block *block, Context &context) {
     if (block->parameters.empty()) return;
-    context.currentLine++;
+    ++context.currentLine;
     int steps = block->parameters[0];
     int oldX = context.sprite.x;
-    context.sprite.x += steps;
-    logMessage(context.currentLine, "MOVE", "Changed X from " + to_string(oldX) + " to " + to_string(context.sprite.x),
-               INFO);
+    int oldY = context.sprite.y;
+    double radians = context.sprite.direction * 3.1415926535 / 180.0;
+    context.sprite.x += (int) (steps * cos(radians));
+    context.sprite.y += (int) (steps * sin(radians));
+    context.sprite.x = clampInt(context.sprite.x, -240, 240);
+    context.sprite.y = clampInt(context.sprite.y, -180, 180);
+    logMessage(context.currentLine, "MOVE",
+               "Moved from (" + to_string(oldX) + "," + to_string(oldY) + ") to (" + to_string(context.sprite.x) + "," +
+               to_string(context.sprite.y) + ")", INFO);
 }
 static void executeTurn(Block *block, Context &context) {
     if (block->parameters.empty()) return;

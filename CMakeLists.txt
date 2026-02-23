@@ -7,11 +7,10 @@ add_executable(Scratch
         src/core/Logger.cpp
         src/core/Events.cpp
         src/core/Runner.cpp
-        include/ui/window.h
+        src/core/Utils.cpp
+
         src/ui/window.cpp
-        include/ui/Renderer.h
         src/ui/Renderer.cpp
-        include/ui/UIManager.h
         src/ui/UIManager.cpp
 )
 target_include_directories(Scratch PRIVATE include)
