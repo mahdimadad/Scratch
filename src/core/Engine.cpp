@@ -7,6 +7,8 @@ void Engine::executeBlock(Block *block, Context &context) {
             break;
         case BlockType::Turn: executeTurn(block, context);
             break;
+        case BlockType::Repeat: executeRepeat(block, context);
+            break;
         default: cout << "Block type not implemented yet." << endl;
             break;
     }
@@ -24,4 +26,9 @@ void Engine::executeTurn(Block *block, Context &context) {
         context.sprite.direction += angle;
         cout << "Turn executed. New direction: " << context.sprite.direction << endl;
     }
+}
+void Engine::executeRepeat(Block *block, Context &context) {
+    if (block->parameters.empty())return;
+    int times = block->parameters[0];
+    for (int i = 0; i < times; i++) { for (Block *child: block->children) { executeBlock(child, context); } }
 }

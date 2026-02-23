@@ -8,5 +8,6 @@ public:
 private:
     void executeMove(Block *block, Context &context);
     void executeTurn(Block *block, Context &context);
+    void executeRepeat(Block *block, Context &context);
 };
 #endif
