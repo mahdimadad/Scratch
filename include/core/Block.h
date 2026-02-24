@@ -3,7 +3,7 @@
 #include <vector>
 #include <string>
 using namespace std;
-enum BlockType { Move, Turn, Repeat, If , CustomFunctionCall , SetVariable , ChangeVariable , Wait , Forever , CallFunction , DefineFunction };
+enum BlockType { Move, Turn, Repeat, If , CustomFunctionCall , SetVariable , ChangeVariable , Wait , Forever , CallFunction , DefineFunction , RepeatUntil , Number , Variable , Add , Sub , Mul , Div , Equal , Greater , Less , And , Or , Not , VariableValue } ;
 struct Block {
     BlockType type;
     vector<Block *> children;

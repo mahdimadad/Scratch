@@ -10,6 +10,7 @@ struct Runner {
     int index = 0;
     bool active = false;
 };
+void buildQueueForScript(Script &script, Context &context, Runner &runner);
 void buildQueueForEvent(Project &project, EventType eventType, Context &context, Runner &runner);
 bool stepRunner(Context &context, Runner &runner);
 bool isRunnerDone(const Runner &runner);

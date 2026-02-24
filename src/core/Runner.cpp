@@ -1,6 +1,7 @@
 #include "core/Runner.h"
 #include "core/Engine.h"
 #include "core/Context.h"
+#include "core/Eval.h"
 #include <chrono>
 static bool checkIfCondition(Block *block, Context &context) {
     if (block->text.empty()) return false;
@@ -34,6 +35,14 @@ static void appendBlockToQueue(Block *block, Context &context, std::vector<Block
     }
     if (block->type == DefineFunction) {
         context.functionTable[block->text] = block;
+        return;
+    }
+    if (block->type == RepeatUntil) {
+        q.push_back(block);
+        return;
+    }
+    if (block->type == RepeatUntil) {
+        q.push_back(block);
         return;
     }
     q.push_back(block);
@@ -71,8 +80,16 @@ bool stepRunner(Context &context, Runner &runner) {
             return false;
         }
         if (b->type == If) {
-            if (b->text.empty() || b->parameters.size() < 2)continue;
-            string name = b->text;
+            if (b->children.size() >= 1) {
+                Block *cond = b->children[0];
+                if (!evalBool(cond, context)) { continue; }
+                for (int i = (int) b->children.size() - 1; i >= 1; i--) {
+                    runner.queue.insert(runner.queue.begin() + runner.index, b->children[i]);
+                }
+                continue;
+            }
+            if (b->text.empty() || b->parameters.size() < 2) continue;
+            std::string name = b->text;
             int op = b->parameters[0];
             int rhs = b->parameters[1];
             int lhs = context.variables[name];
@@ -103,6 +120,16 @@ bool stepRunner(Context &context, Runner &runner) {
             }
             continue;
         }
+        if (b->type == RepeatUntil) {
+            if (b->children.empty()) { continue; }
+            Block *cond = b->children[0];
+            if (evalBool(cond, context)) { continue; }
+            runner.queue.insert(runner.queue.begin() + runner.index, b);
+            for (int i = (int) b->children.size() - 1; i >= 1; i--) {
+                runner.queue.insert(runner.queue.begin() + runner.index, b->children[i]);
+            }
+            continue;
+        }
         executeBlock(b, context);
         return true;
     }
@@ -118,4 +145,11 @@ static void appendBlockToQueue(Block *block, std::vector<Block *> &q) {
         return;
     }
     q.push_back(block);
+}
+void buildQueueForScript(Script &script, Context &context, Runner &runner) {
+    runner.queue.clear();
+    runner.index = 0;
+    runner.active = true;
+    runner.waitUntilMs = 0;
+    for (Block *b: script.blocks) { appendBlockToQueue(b, context, runner.queue); }
 }
