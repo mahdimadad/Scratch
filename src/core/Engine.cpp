@@ -1,6 +1,7 @@
 #include "core/Engine.h"
 #include "core/Logger.h"
 #include "core/Utils.h"
+#include "core/Block.h"
 #include <iostream>
 #include <cmath>
 using namespace std;
@@ -25,6 +26,14 @@ void executeBlock(Block *block, Context &context) {
             break;
         case If: executeIf(block, context);
             break;
+        case Broadcast: {
+            PendingBroadcast p;
+            p.name = block->text;
+            p.parentRunnerId = -1;
+            p.wait = false;
+            context.pendingBroadcasts.push_back(p);
+            break;
+        }
         default: cout << "Block type not implemented yet." << endl;
             break;
     }

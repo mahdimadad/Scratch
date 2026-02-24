@@ -3,6 +3,8 @@
 #include "core/Context.h"
 #include "core/Eval.h"
 #include <chrono>
+#include <iostream>
+
 static bool checkIfCondition(Block *block, Context &context) {
     if (block->text.empty()) return false;
     if (block->parameters.size() < 2) return false;
@@ -130,12 +132,22 @@ bool stepRunner(Context &context, Runner &runner) {
             }
             continue;
         }
+        if (b->type == BroadcastAndWait) {
+            PendingBroadcast p;
+            p.name = b->text;
+            p.parentRunnerId = runner.id;
+            p.wait = true;
+            context.pendingBroadcasts.push_back(p);
+            runner.blocked = true;
+            return true;
+        }
         executeBlock(b, context);
         return true;
     }
+    runner.active = false;
     return false;
 }
-bool isRunnerDone(const Runner &runner) { return !runner.active || runner.index >= (int) runner.queue.size(); }
+bool isRunnerDone(const Runner &r) { return r.index >= (int) r.queue.size(); }
 static void appendBlockToQueue(Block *block, std::vector<Block *> &q) {
     if (!block) return;
     if (block->type == Repeat) {
