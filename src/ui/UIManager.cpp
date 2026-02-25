@@ -203,83 +203,186 @@ void initUIPalette(UIManager& ui) {
     int h = 46;
     int gap = 12;
 
-    BlockUI e1;
-    e1.category = CAT_EVENTS;
-    e1.coreType = HAT_GREEN;
-    e1.label = "when green flag clicked";
-    e1.text = "";
-    e1.cr = 220; e1.cg = 180; e1.cb = 30;
-    e1.r = SDL_Rect{x, y, w, h};
-    ui.paletteBlocks.push_back(e1);
+    int yy = y;
 
-    BlockUI e2 = e1;
-    e2.coreType = HAT_RECEIVE;
-    e2.label = "when I receive msg1";
-    e2.text = "msg1";
-    e2.r = SDL_Rect{x, y + (h + gap), w, h};
-    ui.paletteBlocks.push_back(e2);
+    auto push = [&](BlockUI b) {
+        b.r = SDL_Rect{x, yy, w, h};
+        ui.paletteBlocks.push_back(b);
+        yy += (h + gap);
+    };
 
-    BlockUI e3 = e1;
-    e3.coreType = (int)Broadcast;
-    e3.label = "broadcast msg1";
-    e3.text = "msg1";
-    e3.r = SDL_Rect{x, y + 2 * (h + gap), w, h};
-    ui.paletteBlocks.push_back(e3);
+    {
+        BlockUI e;
+        e.category = CAT_EVENTS;
+        e.cr = 220; e.cg = 180; e.cb = 30;
 
-    BlockUI e4 = e1;
-    e4.coreType = (int)BroadcastAndWait;
-    e4.label = "broadcast msg1 and wait";
-    e4.text = "msg1";
-    e4.r = SDL_Rect{x, y + 3 * (h + gap), w, h};
-    ui.paletteBlocks.push_back(e4);
+        BlockUI e1 = e;
+        e1.coreType = HAT_GREEN;
+        e1.label = "when green flag clicked";
+        e1.text = "";
+        push(e1);
 
-    BlockUI b1;
-    b1.category = CAT_MOTION;
-    b1.coreType = (int)Move;
-    b1.params = {10};
-    b1.label = "move 10 steps";
-    b1.cr = 70; b1.cg = 110; b1.cb = 230;
-    b1.r = SDL_Rect{x, y, w, h};
-    ui.paletteBlocks.push_back(b1);
+        BlockUI r1 = e;
+        r1.coreType = HAT_RECEIVE;
+        r1.label = "when I receive msg1";
+        r1.text = "msg1";
+        push(r1);
 
-    BlockUI b2 = b1;
-    b2.coreType = (int)Turn;
-    b2.params = {15};
-    b2.label = "turn right 15";
-    b2.r = SDL_Rect{x, y + (h + gap), w, h};
-    ui.paletteBlocks.push_back(b2);
+        BlockUI r2 = e;
+        r2.coreType = HAT_RECEIVE;
+        r2.label = "when I receive msg2";
+        r2.text = "msg2";
+        push(r2);
 
-    BlockUI b3 = b1;
-    b3.coreType = (int)Turn;
-    b3.params = {-15};
-    b3.label = "turn left 15";
-    b3.r = SDL_Rect{x, y + 2 * (h + gap), w, h};
-    ui.paletteBlocks.push_back(b3);
+        BlockUI b1 = e;
+        b1.coreType = (int)Broadcast;
+        b1.label = "broadcast msg1";
+        b1.text = "msg1";
+        push(b1);
 
-    BlockUI b4 = b1;
-    b4.coreType = (int)Wait;
-    b4.params = {1};
-    b4.label = "wait 1 seconds";
-    b4.r = SDL_Rect{x, y + 3 * (h + gap), w, h};
-    ui.paletteBlocks.push_back(b4);
+        BlockUI b2 = e;
+        b2.coreType = (int)Broadcast;
+        b2.label = "broadcast msg2";
+        b2.text = "msg2";
+        push(b2);
 
-    BlockUI v1;
-    v1.category = CAT_VARIABLES;
-    v1.coreType = (int)SetVariable;
-    v1.text = "score";
-    v1.params = {0};
-    v1.label = "set score to 0";
-    v1.cr = 240; v1.cg = 150; v1.cb = 40;
-    v1.r = SDL_Rect{x, y, w, h};
-    ui.paletteBlocks.push_back(v1);
+        BlockUI bw1 = e;
+        bw1.coreType = (int)BroadcastAndWait;
+        bw1.label = "broadcast msg1 and wait";
+        bw1.text = "msg1";
+        push(bw1);
 
-    BlockUI v2 = v1;
-    v2.coreType = (int)ChangeVariable;
-    v2.text = "score";
-    v2.params = {1};
-    v2.label = "change score by 1";
-    v2.r = SDL_Rect{x, y + (h + gap), w, h};
-    ui.paletteBlocks.push_back(v2);
+        BlockUI bw2 = e;
+        bw2.coreType = (int)BroadcastAndWait;
+        bw2.label = "broadcast msg2 and wait";
+        bw2.text = "msg2";
+        push(bw2);
+    }
+
+    {
+        yy = y;
+
+        BlockUI m;
+        m.category = CAT_MOTION;
+        m.cr = 70; m.cg = 110; m.cb = 230;
+
+        BlockUI mv10 = m;
+        mv10.coreType = (int)Move;
+        mv10.params = {10};
+        mv10.label = "move 10 steps";
+        push(mv10);
+
+        BlockUI mv20 = m;
+        mv20.coreType = (int)Move;
+        mv20.params = {20};
+        mv20.label = "move 20 steps";
+        push(mv20);
+
+        BlockUI mv_10 = m;
+        mv_10.coreType = (int)Move;
+        mv_10.params = {-10};
+        mv_10.label = "move -10 steps";
+        push(mv_10);
+
+        BlockUI tr15 = m;
+        tr15.coreType = (int)Turn;
+        tr15.params = {15};
+        tr15.label = "turn right 15";
+        push(tr15);
+
+        BlockUI tr30 = m;
+        tr30.coreType = (int)Turn;
+        tr30.params = {30};
+        tr30.label = "turn right 30";
+        push(tr30);
+
+        BlockUI tl15 = m;
+        tl15.coreType = (int)Turn;
+        tl15.params = {-15};
+        tl15.label = "turn left 15";
+        push(tl15);
+
+        BlockUI tl30 = m;
+        tl30.coreType = (int)Turn;
+        tl30.params = {-30};
+        tl30.label = "turn left 30";
+        push(tl30);
+
+        BlockUI w1 = m;
+        w1.coreType = (int)Wait;
+        w1.params = {1};
+        w1.label = "wait 1 seconds";
+        push(w1);
+
+        BlockUI w2 = m;
+        w2.coreType = (int)Wait;
+        w2.params = {2};
+        w2.label = "wait 2 seconds";
+        push(w2);
+
+        BlockUI w3 = m;
+        w3.coreType = (int)Wait;
+        w3.params = {3};
+        w3.label = "wait 3 seconds";
+        push(w3);
+    }
+
+    {
+        yy = y;
+
+        BlockUI v;
+        v.category = CAT_VARIABLES;
+        v.cr = 240; v.cg = 150; v.cb = 40;
+
+        BlockUI s0 = v;
+        s0.coreType = (int)SetVariable;
+        s0.text = "score";
+        s0.params = {0};
+        s0.label = "set score to 0";
+        push(s0);
+
+        BlockUI s10 = v;
+        s10.coreType = (int)SetVariable;
+        s10.text = "score";
+        s10.params = {10};
+        s10.label = "set score to 10";
+        push(s10);
+
+        BlockUI s100 = v;
+        s100.coreType = (int)SetVariable;
+        s100.text = "score";
+        s100.params = {100};
+        s100.label = "set score to 100";
+        push(s100);
+
+        BlockUI c1 = v;
+        c1.coreType = (int)ChangeVariable;
+        c1.text = "score";
+        c1.params = {1};
+        c1.label = "change score by 1";
+        push(c1);
+
+        BlockUI c5 = v;
+        c5.coreType = (int)ChangeVariable;
+        c5.text = "score";
+        c5.params = {5};
+        c5.label = "change score by 5";
+        push(c5);
+
+        BlockUI c_1 = v;
+        c_1.coreType = (int)ChangeVariable;
+        c_1.text = "score";
+        c_1.params = {-1};
+        c_1.label = "change score by -1";
+        push(c_1);
+
+        BlockUI c_5 = v;
+        c_5.coreType = (int)ChangeVariable;
+        c_5.text = "score";
+        c_5.params = {-5};
+        c_5.label = "change score by -5";
+        push(c_5);
+    }
 }
 
 void handleEvent(UIManager &ui, Window &w, Project &project, Context &context, const SDL_Event &e) {
