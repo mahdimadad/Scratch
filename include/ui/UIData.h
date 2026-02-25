@@ -3,12 +3,16 @@
 
 #include <SDL2/SDL.h>
 #include <string>
+#include <vector>
+
+#include "core/Block.h"
 
 struct RenderState {
     SDL_Rect greenFlagRect{20, 20, 120, 40};
     SDL_Rect stepRect{150, 20, 90, 40};
     SDL_Rect pauseRect{250, 20, 90, 40};
     SDL_Rect resumeRect{350, 20, 90, 40};
+    SDL_Rect clearRect{450, 20, 90, 40};
 
     SDL_Rect leftPanelRect{20, 80, 160, 580};
     SDL_Rect blockPanelRect{190, 80, 240, 580};
@@ -28,6 +32,11 @@ enum UICategory {
 struct BlockUI {
     SDL_Rect r{0, 0, 0, 0};
     int category = CAT_MOTION;
+
+    int coreType = (int)Move;
+    std::vector<int> params;
+    std::string text;
+
     std::string label = "block";
     int cr = 80, cg = 80, cb = 200;
 };

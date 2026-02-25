@@ -5,36 +5,12 @@
 #include "ui/Renderer.h"
 #include "ui/Text.h"
 
-#include "core/Block.h"
 #include "core/Context.h"
-#include "core/Events.h"
+#include "core/Runner.h"
 
 #include <SDL2/SDL.h>
 #include <string>
 #include <iostream>
-
-static void buildDemoProject(Project& project) {
-    Script s;
-    s.eventType = GreenFlagClicked;
-
-    Block* setv = new Block(SetVariable);
-    setv->text = "score";
-    setv->parameters.push_back(0);
-    s.blocks.push_back(setv);
-
-    for (int i = 0; i < 6; i++) {
-        Block* move = new Block(Move);
-        move->parameters.push_back(20);
-        s.blocks.push_back(move);
-
-        Block* ch = new Block(ChangeVariable);
-        ch->text = "score";
-        ch->parameters.push_back(1);
-        s.blocks.push_back(ch);
-    }
-
-    project.scripts.push_back(s);
-}
 
 static std::string getFontPath() {
     return "C:/Windows/Fonts/arial.ttf";
@@ -46,7 +22,6 @@ int main(int argc, char** argv) {
 
     Context context;
     Project project;
-    buildDemoProject(project);
 
     UIManager ui;
     initUIPalette(ui);
@@ -62,6 +37,12 @@ int main(int argc, char** argv) {
         while (SDL_PollEvent(&e)) {
             handleEvent(ui, w, project, context, e);
         }
+
+        if (ui.runner.active && !ui.pausedUI && context.isRunning) {
+            stepRunner(context, ui.runner);
+            if (isRunnerDone(ui.runner) || !context.isRunning) ui.runner.active = false;
+        }
+
         renderAll(
             w.renderer,
             ui.rs,
@@ -74,7 +55,9 @@ int main(int argc, char** argv) {
             ui.workspaceBlocks,
             ui.draggingBlock,
             ui.draggedBlock
-        );        SDL_Delay(16);
+        );
+
+        SDL_Delay(16);
     }
 
     destroyText(ts);

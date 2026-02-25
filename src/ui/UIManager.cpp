@@ -1,4 +1,5 @@
 #include "ui/UIManager.h"
+#include <algorithm>
 
 static bool inRect(int x, int y, const SDL_Rect &r) {
     return (x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h);
@@ -54,6 +55,28 @@ static SDL_Rect catRowRect(const RenderState& rs, int idx) {
     return row;
 }
 
+static void rebuildGreenFlagScriptFromWorkspace(const std::vector<BlockUI>& ws, Project& project) {
+    project.scripts.clear();
+
+    Script s;
+    s.eventType = GreenFlagClicked;
+
+    std::vector<BlockUI> ordered = ws;
+    std::stable_sort(ordered.begin(), ordered.end(), [](const BlockUI& a, const BlockUI& b) {
+        if (a.r.y != b.r.y) return a.r.y < b.r.y;
+        return a.r.x < b.r.x;
+    });
+
+    for (const auto& uiBlock : ordered) {
+        Block* b = new Block((BlockType)uiBlock.coreType);
+        b->parameters = uiBlock.params;
+        b->text = uiBlock.text;
+        s.blocks.push_back(b);
+    }
+
+    project.scripts.push_back(s);
+}
+
 void initUIPalette(UIManager& ui) {
     ui.paletteBlocks.clear();
 
@@ -65,20 +88,51 @@ void initUIPalette(UIManager& ui) {
 
     BlockUI b1;
     b1.category = CAT_MOTION;
+    b1.coreType = (int)Move;
+    b1.params = {10};
     b1.label = "move 10 steps";
     b1.cr = 70; b1.cg = 110; b1.cb = 230;
     b1.r = SDL_Rect{x, y, w, h};
     ui.paletteBlocks.push_back(b1);
 
     BlockUI b2 = b1;
+    b2.coreType = (int)Turn;
+    b2.params = {15};
     b2.label = "turn right 15";
     b2.r = SDL_Rect{x, y + (h + gap), w, h};
     ui.paletteBlocks.push_back(b2);
 
     BlockUI b3 = b1;
+    b3.coreType = (int)Turn;
+    b3.params = {-15};
     b3.label = "turn left 15";
     b3.r = SDL_Rect{x, y + 2 * (h + gap), w, h};
     ui.paletteBlocks.push_back(b3);
+
+    BlockUI b4 = b1;
+    b4.coreType = (int)Wait;
+    b4.params = {1};
+    b4.label = "wait 1 seconds";
+    b4.r = SDL_Rect{x, y + 3 * (h + gap), w, h};
+    ui.paletteBlocks.push_back(b4);
+
+    BlockUI v1;
+    v1.category = CAT_VARIABLES;
+    v1.coreType = (int)SetVariable;
+    v1.text = "score";
+    v1.params = {0};
+    v1.label = "set score to 0";
+    v1.cr = 240; v1.cg = 150; v1.cb = 40;
+    v1.r = SDL_Rect{x, y + 4 * (h + gap), w, h};
+    ui.paletteBlocks.push_back(v1);
+
+    BlockUI v2 = v1;
+    v2.coreType = (int)ChangeVariable;
+    v2.text = "score";
+    v2.params = {1};
+    v2.label = "change score by 1";
+    v2.r = SDL_Rect{x, y + 5 * (h + gap), w, h};
+    ui.paletteBlocks.push_back(v2);
 }
 
 void handleEvent(UIManager &ui, Window &w, Project &project, Context &context, const SDL_Event &e) {
@@ -135,17 +189,21 @@ void handleEvent(UIManager &ui, Window &w, Project &project, Context &context, c
 
         if (inRect(mx, my, ui.rs.greenFlagRect)) {
             ui.runner.active = false;
-            runEvent(project, GreenFlagClicked, context);
+            ui.pausedUI = false;
+            context.isRunning = true;
+            rebuildGreenFlagScriptFromWorkspace(ui.workspaceBlocks, project);
+            buildQueueForEvent(project, GreenFlagClicked, context, ui.runner);
             return;
         }
 
         if (inRect(mx, my, ui.rs.stepRect)) {
-            if (!ui.runner.active)
+            if (!ui.runner.active) {
+                context.isRunning = true;
+                rebuildGreenFlagScriptFromWorkspace(ui.workspaceBlocks, project);
                 buildQueueForEvent(project, GreenFlagClicked, context, ui.runner);
-
-            if (ui.runner.active)
-                stepRunner(context, ui.runner);
-
+            }
+            stepRunner(context, ui.runner);
+            if (isRunnerDone(ui.runner) || !context.isRunning) ui.runner.active = false;
             return;
         }
 
@@ -156,6 +214,14 @@ void handleEvent(UIManager &ui, Window &w, Project &project, Context &context, c
 
         if (inRect(mx, my, ui.rs.resumeRect)) {
             ui.pausedUI = false;
+            return;
+        }
+
+        if (inRect(mx, my, ui.rs.clearRect)) {
+            ui.runner.active = false;
+            context.isRunning = false;
+            ui.workspaceBlocks.clear();
+            project.scripts.clear();
             return;
         }
 

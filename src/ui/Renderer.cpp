@@ -105,6 +105,13 @@ void renderAll(SDL_Renderer *ren,
     drawButton(ren, rs.stepRect, 80, 80, 200);
     drawButton(ren, rs.pauseRect, 200, 80, 80);
     drawButton(ren, rs.resumeRect, 80, 200, 120);
+    drawButton(ren, rs.clearRect, 120, 120, 120);
+
+    drawText(ren, text, rs.greenFlagRect.x + 18, rs.greenFlagRect.y + 10, "Run");
+    drawText(ren, text, rs.stepRect.x + 22, rs.stepRect.y + 10, "Step");
+    drawText(ren, text, rs.pauseRect.x + 18, rs.pauseRect.y + 10, "Pause");
+    drawText(ren, text, rs.resumeRect.x + 12, rs.resumeRect.y + 10, "Resume");
+    drawText(ren, text, rs.clearRect.x + 18, rs.clearRect.y + 10, "Clear");
 
     drawPanel(ren, rs.leftPanelRect);
     drawPanel(ren, rs.blockPanelRect);
@@ -115,7 +122,10 @@ void renderAll(SDL_Renderer *ren,
 
     drawCategories(ren, text, rs, selectedCategory);
 
-    for (const auto& b : paletteBlocks) drawBlock(ren, text, b);
+    for (const auto& b : paletteBlocks) {
+        if (b.category == selectedCategory) drawBlock(ren, text, b);
+    }
+
     for (const auto& b : workspaceBlocks) drawBlock(ren, text, b);
 
     drawSprite(ren, rs.stageRect, context.sprite);
