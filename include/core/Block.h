@@ -3,7 +3,7 @@
 #include <vector>
 #include <string>
 using namespace std;
-enum BlockType { Move, Turn , NumberLiteral , Repeat , If , RestoreVars , CustomFunctionCall , SetVariable , ChangeVariable , Wait , Forever , CallFunction , DefineFunction , RepeatUntil , Number , Variable , Add , Sub , Mul , Div , Equal , Greater , Less , And , Or , Not , VariableValue , MessageReceived , Broadcast , BroadcastAndWait , GreenFlagClicked } ;
+enum BlockType { Move , Turn , IfElse , NumberLiteral , WaitUntil , Repeat , Say , SayForSeconds , Think , ThinkForSeconds , If , RestoreVars , CustomFunctionCall , SetVariable , ChangeVariable , Wait , Forever , CallFunction , DefineFunction , RepeatUntil , Number , Variable , Add , Sub , Mul , Div , Equal , Greater , Less , And , Or , Not , VariableValue , MessageReceived , Broadcast , BroadcastAndWait , GreenFlagClicked } ;
 struct Block {
     std::vector<std::string> paramNames;
     BlockType type;

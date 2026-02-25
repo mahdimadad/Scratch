@@ -1,4 +1,5 @@
 #include "core/Eval.h"
+#include "core/Logger.h"
 static int safeDiv(int a, int b) {
     if (b == 0) return 0;
     return a / b;
@@ -12,6 +13,29 @@ int evalValue(Block *expr, Context &context) {
     if (expr->type == VariableValue) {
         if (expr->text.empty()) return 0;
         return context.variables[expr->text];
+    }
+    if (expr->type == Add) {
+        return evalValue(expr->children[0], context)
+             + evalValue(expr->children[1], context);
+    }
+
+    if (expr->type == Sub) {
+        return evalValue(expr->children[0], context)
+             - evalValue(expr->children[1], context);
+    }
+
+    if (expr->type == Mul) {
+        return evalValue(expr->children[0], context)
+             * evalValue(expr->children[1], context);
+    }
+
+    if (expr->type == Div) {
+        int rhs = evalValue(expr->children[1], context);
+        if (rhs == 0) {
+            Logger::log(LOG_WARNING, "DIV", "Division by zero");
+            return 0;
+        }
+        return evalValue(expr->children[0], context) / rhs;
     }
     switch (expr->type) {
         case Number: if (!expr->parameters.empty())return expr->parameters[0];

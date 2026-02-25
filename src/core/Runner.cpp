@@ -74,6 +74,16 @@ bool stepRunner(Context &context, Runner &runner) {
     while (runner.index < (int) runner.queue.size()) {
         Block *b = runner.queue[runner.index];
         runner.index++;
+        if (b->type == WaitUntil) {
+            if (b->children.empty()) return false;
+            Block *cond = b->children[0];
+
+            if (!evalBool(cond, context)) {
+                runner.queue.insert(runner.queue.begin() + runner.index, b);
+                return false;
+            }
+            continue;
+        }
         if (b->type == Wait) {
             if (!b->parameters.empty()) {
                 int seconds = b->parameters[0];
@@ -111,6 +121,32 @@ bool stepRunner(Context &context, Runner &runner) {
                 runner.queue.insert(runner.queue.begin() + runner.index, b->children[i]);
             }
             runner.queue.insert(runner.queue.begin() + runner.index + (int) b->children.size(), b);
+            continue;
+        }
+        if (b->type == IfElse) {
+            if (b->children.empty()) { continue; }
+            if (b->parameters.empty()) { continue; }
+
+            int thenCount = b->parameters[0];
+            if (thenCount < 0) thenCount = 0;
+
+            Block *cond = b->children[0];
+            bool ok = evalBool(cond, context);
+
+            int totalChildren = (int)b->children.size();
+            int thenStart = 1;
+            int thenEnd = std::min(thenStart + thenCount, totalChildren);
+            int elseStart = thenEnd;
+
+            if (ok) {
+                for (int i = thenEnd - 1; i >= thenStart; i--) {
+                    runner.queue.insert(runner.queue.begin() + runner.index, b->children[i]);
+                }
+            } else {
+                for (int i = totalChildren - 1; i >= elseStart; i--) {
+                    runner.queue.insert(runner.queue.begin() + runner.index, b->children[i]);
+                }
+            }
             continue;
         }
         if (b->type == CallFunction) {

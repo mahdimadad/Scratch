@@ -15,6 +15,9 @@ struct SpriteState {
     int y = 0;
     int direction = 0;
     bool visible = true;
+    std::string bubbleText = "";
+    bool bubbleIsThink = false;
+    unsigned long long bubbleUntilMs = 0;
 };
 struct Block;
 struct SavedVar {

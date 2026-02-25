@@ -3,6 +3,7 @@
 #include "core/Utils.h"
 #include "core/Block.h"
 #include "core/Eval.h"
+#include "core/Context.h"
 #include <cmath>
 using namespace std;
 
@@ -34,6 +35,10 @@ void executeBlock(Block *block, Context &context) {
         context.isRunning = false;
         return;
     }
+    if (context.sprite.bubbleUntilMs > 0 && nowMs() >= context.sprite.bubbleUntilMs) {
+        context.sprite.bubbleText = "";
+        context.sprite.bubbleUntilMs = 0;
+    }
     switch (block->type) {
         case Move:
             executeMove(block, context);
@@ -53,6 +58,49 @@ void executeBlock(Block *block, Context &context) {
         case If:
             executeIf(block, context);
             break;
+        case Say: {
+            context.sprite.bubbleText = block->text;
+            context.sprite.bubbleIsThink = false;
+            context.sprite.bubbleUntilMs = 0;
+
+            Logger::log(LOG_INFO, "SAY", "Say: " + context.sprite.bubbleText);
+            break;
+        }
+
+        case Think: {
+            context.sprite.bubbleText = block->text;
+            context.sprite.bubbleIsThink = true;
+            context.sprite.bubbleUntilMs = 0;
+
+            Logger::log(LOG_INFO, "THINK", "Think: " + context.sprite.bubbleText);
+            break;
+        }
+
+        case SayForSeconds: {
+            int sec = 0;
+            if (!block->parameters.empty()) sec = block->parameters[0];
+            if (sec < 0) sec = 0;
+
+            context.sprite.bubbleText = block->text;
+            context.sprite.bubbleIsThink = false;
+            context.sprite.bubbleUntilMs = nowMs() + (unsigned long long)sec * 1000ULL;
+
+            Logger::log(LOG_INFO, "SAY", "Say for " + std::to_string(sec) + "s: " + context.sprite.bubbleText);
+            break;
+        }
+
+        case ThinkForSeconds: {
+            int sec = 0;
+            if (!block->parameters.empty()) sec = block->parameters[0];
+            if (sec < 0) sec = 0;
+
+            context.sprite.bubbleText = block->text;
+            context.sprite.bubbleIsThink = true;
+            context.sprite.bubbleUntilMs = nowMs() + (unsigned long long)sec * 1000ULL;
+
+            Logger::log(LOG_INFO, "THINK", "Think for " + std::to_string(sec) + "s: " + context.sprite.bubbleText);
+            break;
+        }
         case RestoreVars: {
             if (block->parameters.empty()) break;
             int frameId = block->parameters[0];
