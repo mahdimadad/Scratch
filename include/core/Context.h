@@ -15,6 +15,14 @@ struct SpriteState {
     int y = 0;
     int direction = 0;
     bool visible = true;
+    std::string bubbleText = "";
+    bool bubbleIsThink = false;
+    unsigned long long bubbleUntilMs = 0;
+    int sizePercent = 100;
+    int costumeIndex = 0;
+    int layer = 0;
+    int colorEffect = 0;
+    std::vector<std::string> costumes;
 };
 struct Block;
 struct SavedVar {
@@ -39,5 +47,7 @@ struct Context {
     bool stepMode = false;
     bool stepRequested = false;
     bool paused = false;
+    int backdropIndex = 0;
+    std::vector<std::string> backdrops;
 };
 #endif
