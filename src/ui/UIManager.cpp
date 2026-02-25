@@ -63,7 +63,7 @@ static void rebuildGreenFlagScriptFromWorkspace(const std::vector<BlockUI>& ws, 
     project.scripts.clear();
 
     Script s;
-    s.eventType = GreenFlagClicked;
+    s.eventType = EVT_GreenFlagClicked;
 
     std::vector<BlockUI> ordered = ws;
     std::stable_sort(ordered.begin(), ordered.end(), [](const BlockUI& a, const BlockUI& b) {
@@ -325,7 +325,7 @@ void handleEvent(UIManager &ui, Window &w, Project &project, Context &context, c
             ui.pausedUI = false;
             context.isRunning = true;
             rebuildGreenFlagScriptFromWorkspace(ui.workspaceBlocks, project);
-            buildQueueForEvent(project, GreenFlagClicked, context, ui.runner);
+            buildQueueForEvent(project, EVT_GreenFlagClicked, context, ui.runner);
             return;
         }
 
@@ -333,7 +333,7 @@ void handleEvent(UIManager &ui, Window &w, Project &project, Context &context, c
             if (!ui.runner.active) {
                 context.isRunning = true;
                 rebuildGreenFlagScriptFromWorkspace(ui.workspaceBlocks, project);
-                buildQueueForEvent(project, GreenFlagClicked, context, ui.runner);
+                buildQueueForEvent(project, EVT_GreenFlagClicked, context, ui.runner);
             }
             stepRunner(context, ui.runner);
             if (isRunnerDone(ui.runner) || !context.isRunning) ui.runner.active = false;
