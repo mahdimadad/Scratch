@@ -113,7 +113,7 @@ bool stepRunner(Context &context, Runner &runner) {
             runner.queue.insert(runner.queue.begin() + runner.index + (int) b->children.size(), b);
             continue;
         }
-        if (b->type == CallFunction) {
+                if (b->type == CallFunction) {
             std::string fname = b->text;
             if (fname.empty()) {
                 continue;
@@ -129,6 +129,7 @@ bool stepRunner(Context &context, Runner &runner) {
                 Logger::log(LOG_WARNING, "FUNC", "Not enough args for: " + fname);
                 continue;
             }
+
             RestoreFrame frame;
             for (int i = 0; i < paramCount; i++) {
                 const std::string &pname = def->paramNames[i];
@@ -147,25 +148,25 @@ bool stepRunner(Context &context, Runner &runner) {
                 int value = evalInt(b->children[i], context);
                 context.variables[pname] = value;
             }
+
             int frameId = (int)context.restoreStack.size();
             context.restoreStack.push_back(frame);
+
             Block *restore = new Block(RestoreVars);
             restore->parameters.push_back(frameId);
+
+            std::vector<Block*> expanded;
+            for (Block *ch : def->children) {
+                appendBlockToQueue(ch, context, expanded);
+            }
+
             runner.queue.insert(runner.queue.begin() + runner.index, restore);
-            for (int i = (int)def->children.size() - 1; i >= 0; i--) {
-                runner.queue.insert(runner.queue.begin() + runner.index, def->children[i]);
+
+            for (int i = (int)expanded.size() - 1; i >= 0; i--) {
+                runner.queue.insert(runner.queue.begin() + runner.index, expanded[i]);
             }
+
             Logger::log(LOG_INFO, "FUNC", "Call " + fname);
-            continue;
-        }
-        if (b->type == RepeatUntil) {
-            if (b->children.empty()) { continue; }
-            Block *cond = b->children[0];
-            if (evalBool(cond, context)) { continue; }
-            runner.queue.insert(runner.queue.begin() + runner.index, b);
-            for (int i = (int) b->children.size() - 1; i >= 1; i--) {
-                runner.queue.insert(runner.queue.begin() + runner.index, b->children[i]);
-            }
             continue;
         }
         if (b->type == BroadcastAndWait) {
