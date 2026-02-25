@@ -5,6 +5,9 @@
 
 static const char* kSaveFile = "project.ws";
 
+static const int HAT_GREEN = -1001;
+static const int HAT_RECEIVE = -1002;
+
 static bool inRect(int x, int y, const SDL_Rect &r) {
     return (x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h);
 }
@@ -59,11 +62,8 @@ static SDL_Rect catRowRect(const RenderState& rs, int idx) {
     return row;
 }
 
-static void rebuildGreenFlagScriptFromWorkspace(const std::vector<BlockUI>& ws, Project& project) {
+static void rebuildProjectFromWorkspace(const std::vector<BlockUI>& ws, Project& project) {
     project.scripts.clear();
-
-    Script s;
-    s.eventType = EVT_GreenFlagClicked;
 
     std::vector<BlockUI> ordered = ws;
     std::stable_sort(ordered.begin(), ordered.end(), [](const BlockUI& a, const BlockUI& b) {
@@ -71,14 +71,52 @@ static void rebuildGreenFlagScriptFromWorkspace(const std::vector<BlockUI>& ws, 
         return a.r.x < b.r.x;
     });
 
+    Script cur;
+    cur.eventType = EVT_GreenFlagClicked;
+    cur.messageName = "";
+
+    bool hasHat = false;
+    bool hasAnyBlock = false;
+
+    auto flush = [&]() {
+        if (!cur.blocks.empty()) {
+            project.scripts.push_back(cur);
+            cur.blocks.clear();
+        }
+    };
+
     for (const auto& uiBlock : ordered) {
+        if (uiBlock.coreType == HAT_GREEN) {
+            hasHat = true;
+            flush();
+            cur.eventType = EVT_GreenFlagClicked;
+            cur.messageName = "";
+            continue;
+        }
+
+        if (uiBlock.coreType == HAT_RECEIVE) {
+            hasHat = true;
+            flush();
+            cur.eventType = EVT_MessageReceived;
+            cur.messageName = uiBlock.text.empty() ? "msg1" : uiBlock.text;
+            continue;
+        }
+
         Block* b = new Block((BlockType)uiBlock.coreType);
         b->parameters = uiBlock.params;
         b->text = uiBlock.text;
-        s.blocks.push_back(b);
+        cur.blocks.push_back(b);
+        hasAnyBlock = true;
     }
 
-    project.scripts.push_back(s);
+    flush();
+
+    if (!hasHat && hasAnyBlock && project.scripts.empty()) {
+        Script s;
+        s.eventType = EVT_GreenFlagClicked;
+        s.messageName = "";
+        project.scripts.push_back(s);
+    }
 }
 
 static bool saveWorkspaceToFile(const std::vector<BlockUI>& ws, const char* path) {
@@ -165,6 +203,36 @@ void initUIPalette(UIManager& ui) {
     int h = 46;
     int gap = 12;
 
+    BlockUI e1;
+    e1.category = CAT_EVENTS;
+    e1.coreType = HAT_GREEN;
+    e1.label = "when green flag clicked";
+    e1.text = "";
+    e1.cr = 220; e1.cg = 180; e1.cb = 30;
+    e1.r = SDL_Rect{x, y, w, h};
+    ui.paletteBlocks.push_back(e1);
+
+    BlockUI e2 = e1;
+    e2.coreType = HAT_RECEIVE;
+    e2.label = "when I receive msg1";
+    e2.text = "msg1";
+    e2.r = SDL_Rect{x, y + (h + gap), w, h};
+    ui.paletteBlocks.push_back(e2);
+
+    BlockUI e3 = e1;
+    e3.coreType = (int)Broadcast;
+    e3.label = "broadcast msg1";
+    e3.text = "msg1";
+    e3.r = SDL_Rect{x, y + 2 * (h + gap), w, h};
+    ui.paletteBlocks.push_back(e3);
+
+    BlockUI e4 = e1;
+    e4.coreType = (int)BroadcastAndWait;
+    e4.label = "broadcast msg1 and wait";
+    e4.text = "msg1";
+    e4.r = SDL_Rect{x, y + 3 * (h + gap), w, h};
+    ui.paletteBlocks.push_back(e4);
+
     BlockUI b1;
     b1.category = CAT_MOTION;
     b1.coreType = (int)Move;
@@ -202,7 +270,7 @@ void initUIPalette(UIManager& ui) {
     v1.params = {0};
     v1.label = "set score to 0";
     v1.cr = 240; v1.cg = 150; v1.cb = 40;
-    v1.r = SDL_Rect{x, y + 4 * (h + gap), w, h};
+    v1.r = SDL_Rect{x, y, w, h};
     ui.paletteBlocks.push_back(v1);
 
     BlockUI v2 = v1;
@@ -210,7 +278,7 @@ void initUIPalette(UIManager& ui) {
     v2.text = "score";
     v2.params = {1};
     v2.label = "change score by 1";
-    v2.r = SDL_Rect{x, y + 5 * (h + gap), w, h};
+    v2.r = SDL_Rect{x, y + (h + gap), w, h};
     ui.paletteBlocks.push_back(v2);
 }
 
@@ -324,7 +392,7 @@ void handleEvent(UIManager &ui, Window &w, Project &project, Context &context, c
             ui.runner.active = false;
             ui.pausedUI = false;
             context.isRunning = true;
-            rebuildGreenFlagScriptFromWorkspace(ui.workspaceBlocks, project);
+            rebuildProjectFromWorkspace(ui.workspaceBlocks, project);
             buildQueueForEvent(project, EVT_GreenFlagClicked, context, ui.runner);
             return;
         }
@@ -332,7 +400,7 @@ void handleEvent(UIManager &ui, Window &w, Project &project, Context &context, c
         if (inRect(mx, my, ui.rs.stepRect)) {
             if (!ui.runner.active) {
                 context.isRunning = true;
-                rebuildGreenFlagScriptFromWorkspace(ui.workspaceBlocks, project);
+                rebuildProjectFromWorkspace(ui.workspaceBlocks, project);
                 buildQueueForEvent(project, EVT_GreenFlagClicked, context, ui.runner);
             }
             stepRunner(context, ui.runner);
@@ -378,7 +446,6 @@ void handleEvent(UIManager &ui, Window &w, Project &project, Context &context, c
     }
 
     if (e.type == SDL_MOUSEMOTION) {
-
         if (ui.draggingBlock) {
             ui.draggedBlock.r.x = e.motion.x - ui.dragBlockOffX;
             ui.draggedBlock.r.y = e.motion.y - ui.dragBlockOffY;
@@ -396,7 +463,6 @@ void handleEvent(UIManager &ui, Window &w, Project &project, Context &context, c
     }
 
     if (e.type == SDL_MOUSEBUTTONUP && e.button.button == SDL_BUTTON_LEFT) {
-
         if (ui.draggingBlock) {
             if (inRect(e.button.x, e.button.y, ui.rs.stageRect))
                 ui.workspaceBlocks.push_back(ui.draggedBlock);
