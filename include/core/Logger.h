@@ -1,7 +1,19 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 #include <string>
-using namespace std;
-enum LogLevel { INFO, WARNING, ERROR };
-void logMessage(int cycle, const string &command, const string &message, LogLevel level = INFO);
+enum LogLevel {
+    LOG_INFO,
+    LOG_WARNING,
+    LOG_ERROR
+};
+class Logger {
+public:
+    static void init();
+    static void setCycle(int cycle);
+    static void log(LogLevel level,
+                    const std::string &command,
+                    const std::string &message);
+private:
+    static int currentCycle;
+};
 #endif

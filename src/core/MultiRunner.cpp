@@ -1,6 +1,8 @@
 #include "core/MultiRunner.h"
 #include "core/Runner.h"
+#include "core/Logger.h"
 void buildMultiForEvent(Project &project, EventType eventType, Context &context, MultiRunner &mr) {
+    registerFunctions(project, context);
     mr.runners.clear();
     mr.currentIndex = 0;
     mr.nextRunnerId = 0;
@@ -17,7 +19,32 @@ void buildMultiForEvent(Project &project, EventType eventType, Context &context,
         }
     }
 }
+static void cleanupDoneRunners(MultiRunner &mr) {
+    std::vector<Runner> alive;
+    alive.reserve(mr.runners.size());
+
+    for (auto &r : mr.runners) {
+        if (!isRunnerDone(r)) {
+            alive.push_back(r);
+        }
+    }
+
+    mr.runners.swap(alive);
+
+    if (mr.currentIndex >= (int)mr.runners.size()) {
+        mr.currentIndex = 0;
+    }
+
+    if (mr.runners.empty()) {
+        mr.active = false;
+        mr.currentIndex = 0;
+    }
+}
 bool stepMulti(Context &context, Project &project, MultiRunner &mr) {
+    if (context.paused) return false;
+    static int cycleCounter = 0;
+    cycleCounter++;
+    Logger::setCycle(cycleCounter);
     if (!mr.active) return false;
     if (!context.isRunning) return false;
     if (!context.pendingBroadcasts.empty()) {
@@ -60,15 +87,28 @@ bool stepMulti(Context &context, Project &project, MultiRunner &mr) {
             child.parentId = -1;
         }
     }
-    int n = (int) mr.runners.size();
+    int n = (int)mr.runners.size();
+
+    if (context.stepMode && !context.stepRequested)
+        return false;
+
     for (int i = 0; i < n; i++) {
         int idx = (mr.currentIndex + i) % n;
         Runner &r = mr.runners[idx];
+
         if (!isRunnerDone(r) && !r.blocked) {
             mr.currentIndex = (idx + 1) % n;
-            return stepRunner(context, r);
+
+            bool did = stepRunner(context, r);
+
+            if (context.stepMode && did)
+                context.stepRequested = false;
+
+            return did;
         }
     }
+    cleanupDoneRunners(mr);
+    if (!mr.active) return false;
     return false;
 }
 bool isMultiDone(const MultiRunner &mr) {
@@ -77,8 +117,17 @@ bool isMultiDone(const MultiRunner &mr) {
     return true;
 }
 void stopAll(MultiRunner &mr, Context &context) {
+
+    mr.runners.clear();
     mr.active = false;
     mr.currentIndex = 0;
-    mr.runners.clear();
+
+    context.pendingBroadcasts.clear();
     context.isRunning = false;
+
+    Logger::log(
+        LOG_INFO,
+        "ENGINE",
+        "Stop All executed"
+    );
 }

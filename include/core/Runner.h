@@ -18,4 +18,7 @@ void buildQueueForScript(Script &script, Context &context, Runner &runner);
 void buildQueueForEvent(Project &project, EventType eventType, Context &context, Runner &runner);
 bool stepRunner(Context &context, Runner &runner);
 bool isRunnerDone(const Runner &runner);
+void enableStepMode(Context &context);
+void requestStep(Context &context);
+void registerFunctions(Project &project, Context &context);
 #endif

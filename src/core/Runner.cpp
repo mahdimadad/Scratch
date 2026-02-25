@@ -1,10 +1,10 @@
 #include "core/Runner.h"
 #include "core/Engine.h"
 #include "core/Context.h"
+#include "core/Logger.h"
 #include "core/Eval.h"
 #include <chrono>
 #include <iostream>
-
 static bool checkIfCondition(Block *block, Context &context) {
     if (block->text.empty()) return false;
     if (block->parameters.size() < 2) return false;
@@ -64,6 +64,7 @@ static unsigned long long nowMs() {
     return (unsigned long long) duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count();
 }
 bool stepRunner(Context &context, Runner &runner) {
+    if (context.paused) return false;
     if (!runner.active) return false;
     if (!context.isRunning) return false;
     if (runner.waitUntilMs > 0) {
@@ -114,12 +115,47 @@ bool stepRunner(Context &context, Runner &runner) {
         }
         if (b->type == CallFunction) {
             std::string fname = b->text;
-            if (context.functionTable.count(fname)) {
-                Block *def = context.functionTable[fname];
-                for (int i = (int) def->children.size() - 1; i >= 0; i--) {
-                    runner.queue.insert(runner.queue.begin() + runner.index, def->children[i]);
-                }
+            if (fname.empty()) {
+                continue;
             }
+            if (!context.functionTable.count(fname)) {
+                Logger::log(LOG_WARNING, "FUNC", "Function not found: " + fname);
+                continue;
+            }
+            Block *def = context.functionTable[fname];
+            int argCount = (int)b->children.size();
+            int paramCount = (int)def->paramNames.size();
+            if (argCount < paramCount) {
+                Logger::log(LOG_WARNING, "FUNC", "Not enough args for: " + fname);
+                continue;
+            }
+            RestoreFrame frame;
+            for (int i = 0; i < paramCount; i++) {
+                const std::string &pname = def->paramNames[i];
+                SavedVar sv;
+                sv.name = pname;
+                auto it = context.variables.find(pname);
+                if (it != context.variables.end()) {
+                    sv.existed = true;
+                    sv.oldValue = it->second;
+                } else {
+                    sv.existed = false;
+                    sv.oldValue = 0;
+                }
+                frame.saved.push_back(sv);
+
+                int value = evalInt(b->children[i], context);
+                context.variables[pname] = value;
+            }
+            int frameId = (int)context.restoreStack.size();
+            context.restoreStack.push_back(frame);
+            Block *restore = new Block(RestoreVars);
+            restore->parameters.push_back(frameId);
+            runner.queue.insert(runner.queue.begin() + runner.index, restore);
+            for (int i = (int)def->children.size() - 1; i >= 0; i--) {
+                runner.queue.insert(runner.queue.begin() + runner.index, def->children[i]);
+            }
+            Logger::log(LOG_INFO, "FUNC", "Call " + fname);
             continue;
         }
         if (b->type == RepeatUntil) {
@@ -164,4 +200,48 @@ void buildQueueForScript(Script &script, Context &context, Runner &runner) {
     runner.active = true;
     runner.waitUntilMs = 0;
     for (Block *b: script.blocks) { appendBlockToQueue(b, context, runner.queue); }
+}
+void enableStepMode(Context &context) {
+    context.stepMode = true;
+    context.stepRequested = false;
+}
+
+void requestStep(Context &context) {
+    context.stepRequested = true;
+}
+static bool containsEventBlock(Block *b) {
+    if (!b) return false;
+    for (Block *ch : b->children) {
+        if (containsEventBlock(ch)) return true;
+    }
+    return false;
+}
+void registerFunctions(Project &project, Context &context) {
+    context.functionTable.clear();
+    for (Script &s : project.scripts) {
+        for (Block *b : s.blocks) {
+            if (!b) continue;
+            if (b->type != DefineFunction) continue;
+
+            if (b->text.empty()) {
+                Logger::log(LOG_WARNING, "FUNC", "DefineFunction with empty name ignored");
+                continue;
+            }
+            bool bad = false;
+            for (Block *body : b->children) {
+                if (containsEventBlock(body)) {
+                    bad = true;
+                    break;
+                }
+            }
+            if (bad) {
+                Logger::log(LOG_ERROR, "FUNC", "Event block inside function '" + b->text + "'. Not registered.");
+                continue;
+            }
+            if (context.functionTable.count(b->text)) {
+                Logger::log(LOG_WARNING, "FUNC", "Duplicate function name '" + b->text + "'. Overriding.");
+            }
+            context.functionTable[b->text] = b;
+        }
+    }
 }

@@ -5,6 +5,14 @@ static int safeDiv(int a, int b) {
 }
 int evalValue(Block *expr, Context &context) {
     if (!expr) return 0;
+    if (expr->type == NumberLiteral) {
+        if (expr->parameters.empty()) return 0;
+        return expr->parameters[0];
+    }
+    if (expr->type == VariableValue) {
+        if (expr->text.empty()) return 0;
+        return context.variables[expr->text];
+    }
     switch (expr->type) {
         case Number: if (!expr->parameters.empty())return expr->parameters[0];
             return 0;
@@ -18,6 +26,18 @@ int evalValue(Block *expr, Context &context) {
 }
 bool evalBool(Block *expr, Context &context) {
     if (!expr) return false;
+    if (expr->type == Not) {
+        if (expr->children.empty()) return false;
+        return !evalBool(expr->children[0], context);
+    }
+    if (expr->type == And) {
+        if (expr->children.size() < 2) return false;
+        return evalBool(expr->children[0], context) && evalBool(expr->children[1], context);
+    }
+    if (expr->type == Or) {
+        if (expr->children.size() < 2) return false;
+        return evalBool(expr->children[0], context) || evalBool(expr->children[1], context);
+    }
     switch (expr->type) {
         case Equal: return evalValue(expr->children[0], context) == evalValue(expr->children[1], context);
         case Greater: return evalValue(expr->children[0], context) > evalValue(expr->children[1], context);
@@ -27,4 +47,16 @@ bool evalBool(Block *expr, Context &context) {
         case Not: return !evalBool(expr->children[0], context);
         default: return false;
     }
+}
+int evalInt(Block *expr, Context &context) {
+    if (!expr) return 0;
+    if (expr->type == NumberLiteral) {
+        if (expr->parameters.empty()) return 0;
+        return expr->parameters[0];
+    }
+    if (expr->type == VariableValue) {
+        if (expr->text.empty()) return 0;
+        return context.variables[expr->text];
+    }
+    return 0;
 }

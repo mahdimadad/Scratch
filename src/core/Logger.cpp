@@ -1,17 +1,31 @@
 #include "core/Logger.h"
 #include <iostream>
-using namespace std;
-void logMessage(int cycle, const string &command, const string &message, LogLevel level) {
-    string levelStr;
+int Logger::currentCycle = 0;
+
+void Logger::init() {
+    currentCycle = 0;
+}
+
+void Logger::setCycle(int cycle) {
+    currentCycle = cycle;
+}
+
+void Logger::log(LogLevel level,
+                 const std::string &command,
+                 const std::string &message) {
+    std::string levelStr;
     switch (level) {
-        case INFO: levelStr = "INFO";
+        case LOG_INFO: levelStr = "INFO";
             break;
-        case WARNING: levelStr = "WARNING";
+        case LOG_WARNING: levelStr = "WARNING";
             break;
-        case ERROR: levelStr = "ERROR";
-            break;
-        default: levelStr = "INFO";
+        case LOG_ERROR: levelStr = "ERROR";
             break;
     }
-    cout << "[Cycle:" << cycle << "] " << "[" << levelStr << "] " << "[" << command << "] " << message << endl;
+    std::cout
+            << "[Cycle:" << currentCycle << "] "
+            << "[" << levelStr << "] "
+            << "[" << command << "] "
+            << message
+            << std::endl;
 }
