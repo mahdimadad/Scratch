@@ -1,8 +1,18 @@
-//
-// Created by K1 on 2/24/2026.
-//
+#ifndef UI_TEXT_H
+#define UI_TEXT_H
+#include <SDL2/SDL.h>
+#include <string>
+struct _TTF_Font;
+typedef _TTF_Font TTF_Font;
 
-#ifndef SCRATCH_TEXT_H
-#define SCRATCH_TEXT_H
+struct TextSystem {
+    TTF_Font* font=nullptr;
+    bool ready=false;
+};
 
-#endif //SCRATCH_TEXT_H
+bool initText(TextSystem& ts,const char* fontPath, int fontSize);
+void destroyText(TextSystem& ts);
+
+void drawText(SDL_Renderer* ren, TextSystem& ts,int x, int y, const std::string& text);
+
+#endif

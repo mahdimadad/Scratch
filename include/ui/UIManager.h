@@ -13,6 +13,10 @@ struct UIManager {
     RenderState rs;
     Runner runner;
     bool pausedUI=false;
+    bool spriteDraggable=true;
+    bool draggingSprite = false;
+    int dragOffsetX = 0;
+    int dragOffsetY = 0;
 };
 
 void handleEvent(UIManager& ui,Window& w, Project& project,Context& context, const SDL_Event& e);
