@@ -111,13 +111,19 @@ void renderAll(SDL_Renderer *ren,
     drawButton(ren, rs.stepRect, 80, 80, 200);
     drawButton(ren, rs.pauseRect, 200, 80, 80);
     drawButton(ren, rs.resumeRect, 80, 200, 120);
-    drawButton(ren, rs.clearRect, 120, 120, 120);
+
+    drawButton(ren, rs.newRect, 120, 120, 120);
+    drawButton(ren, rs.saveRect, 120, 120, 120);
+    drawButton(ren, rs.loadRect, 120, 120, 120);
 
     drawText(ren, text, rs.greenFlagRect.x + 18, rs.greenFlagRect.y + 10, "Run");
     drawText(ren, text, rs.stepRect.x + 22, rs.stepRect.y + 10, "Step");
     drawText(ren, text, rs.pauseRect.x + 18, rs.pauseRect.y + 10, "Pause");
     drawText(ren, text, rs.resumeRect.x + 12, rs.resumeRect.y + 10, "Resume");
-    drawText(ren, text, rs.clearRect.x + 18, rs.clearRect.y + 10, "Clear");
+
+    drawText(ren, text, rs.newRect.x + 26, rs.newRect.y + 10, "New");
+    drawText(ren, text, rs.saveRect.x + 22, rs.saveRect.y + 10, "Save");
+    drawText(ren, text, rs.loadRect.x + 22, rs.loadRect.y + 10, "Load");
 
     drawPanel(ren, rs.leftPanelRect);
     drawPanel(ren, rs.blockPanelRect);

@@ -1,5 +1,9 @@
 #include "ui/UIManager.h"
 #include <algorithm>
+#include <fstream>
+#include <iomanip>
+
+static const char* kSaveFile = "project.ws";
 
 static bool inRect(int x, int y, const SDL_Rect &r) {
     return (x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h);
@@ -77,6 +81,81 @@ static void rebuildGreenFlagScriptFromWorkspace(const std::vector<BlockUI>& ws, 
     project.scripts.push_back(s);
 }
 
+static bool saveWorkspaceToFile(const std::vector<BlockUI>& ws, const char* path) {
+    std::ofstream out(path, std::ios::binary);
+    if (!out.is_open()) return false;
+
+    out << "SCRATCH_WS_1\n";
+    out << ws.size() << "\n";
+
+    for (const auto& b : ws) {
+        out << b.category << " " << b.coreType << " "
+            << b.r.x << " " << b.r.y << " " << b.r.w << " " << b.r.h << " "
+            << b.cr << " " << b.cg << " " << b.cb << " "
+            << b.params.size() << " ";
+
+        for (size_t i = 0; i < b.params.size(); i++) out << b.params[i] << " ";
+
+        out << std::quoted(b.label) << " " << std::quoted(b.text) << "\n";
+    }
+    return true;
+}
+
+static bool loadWorkspaceFromFile(std::vector<BlockUI>& ws, const char* path) {
+    std::ifstream in(path, std::ios::binary);
+    if (!in.is_open()) return false;
+
+    std::string header;
+    std::getline(in, header);
+    if (header != "SCRATCH_WS_1") return false;
+
+    size_t n = 0;
+    in >> n;
+    ws.clear();
+    ws.reserve(n);
+
+    for (size_t i = 0; i < n; i++) {
+        BlockUI b;
+        size_t pc = 0;
+        in >> b.category >> b.coreType
+           >> b.r.x >> b.r.y >> b.r.w >> b.r.h
+           >> b.cr >> b.cg >> b.cb
+           >> pc;
+
+        b.params.clear();
+        b.params.reserve(pc);
+        for (size_t k = 0; k < pc; k++) {
+            int v;
+            in >> v;
+            b.params.push_back(v);
+        }
+
+        in >> std::quoted(b.label) >> std::quoted(b.text);
+        ws.push_back(b);
+    }
+    return true;
+}
+
+static int askSaveBeforeClear(SDL_Window* win) {
+    const SDL_MessageBoxButtonData buttons[] = {
+        { SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, "Cancel" },
+        { 0, 1, "No" },
+        { SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 2, "Save" }
+    };
+    const SDL_MessageBoxData msgboxdata = {
+        SDL_MESSAGEBOX_WARNING,
+        win,
+        "Unsaved changes",
+        "Do you want to save before creating a new project?",
+        SDL_arraysize(buttons),
+        buttons,
+        nullptr
+    };
+    int buttonid = 0;
+    SDL_ShowMessageBox(&msgboxdata, &buttonid);
+    return buttonid;
+}
+
 void initUIPalette(UIManager& ui) {
     ui.paletteBlocks.clear();
 
@@ -147,6 +226,33 @@ void handleEvent(UIManager &ui, Window &w, Project &project, Context &context, c
         return;
     }
 
+    if (e.type == SDL_KEYDOWN && (e.key.keysym.mod & KMOD_CTRL) && e.key.keysym.sym == SDLK_s) {
+        saveWorkspaceToFile(ui.workspaceBlocks, kSaveFile);
+        return;
+    }
+
+    if (e.type == SDL_KEYDOWN && (e.key.keysym.mod & KMOD_CTRL) && e.key.keysym.sym == SDLK_o) {
+        ui.runner.active = false;
+        ui.pausedUI = false;
+        context.isRunning = false;
+        loadWorkspaceFromFile(ui.workspaceBlocks, kSaveFile);
+        return;
+    }
+
+    if (e.type == SDL_KEYDOWN && (e.key.keysym.mod & KMOD_CTRL) && e.key.keysym.sym == SDLK_n) {
+        if (!ui.workspaceBlocks.empty()) {
+            int r = askSaveBeforeClear(w.window);
+            if (r == 0) return;
+            if (r == 2) saveWorkspaceToFile(ui.workspaceBlocks, kSaveFile);
+        }
+        ui.runner.active = false;
+        ui.pausedUI = false;
+        context.isRunning = false;
+        ui.workspaceBlocks.clear();
+        project.scripts.clear();
+        return;
+    }
+
     if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_a) {
         context.sprite.direction -= 10;
         normalizeDirection(context.sprite.direction);
@@ -187,6 +293,33 @@ void handleEvent(UIManager &ui, Window &w, Project &project, Context &context, c
         int mx = e.button.x;
         int my = e.button.y;
 
+        if (inRect(mx, my, ui.rs.newRect)) {
+            if (!ui.workspaceBlocks.empty()) {
+                int r = askSaveBeforeClear(w.window);
+                if (r == 0) return;
+                if (r == 2) saveWorkspaceToFile(ui.workspaceBlocks, kSaveFile);
+            }
+            ui.runner.active = false;
+            ui.pausedUI = false;
+            context.isRunning = false;
+            ui.workspaceBlocks.clear();
+            project.scripts.clear();
+            return;
+        }
+
+        if (inRect(mx, my, ui.rs.saveRect)) {
+            saveWorkspaceToFile(ui.workspaceBlocks, kSaveFile);
+            return;
+        }
+
+        if (inRect(mx, my, ui.rs.loadRect)) {
+            ui.runner.active = false;
+            ui.pausedUI = false;
+            context.isRunning = false;
+            loadWorkspaceFromFile(ui.workspaceBlocks, kSaveFile);
+            return;
+        }
+
         if (inRect(mx, my, ui.rs.greenFlagRect)) {
             ui.runner.active = false;
             ui.pausedUI = false;
@@ -214,14 +347,6 @@ void handleEvent(UIManager &ui, Window &w, Project &project, Context &context, c
 
         if (inRect(mx, my, ui.rs.resumeRect)) {
             ui.pausedUI = false;
-            return;
-        }
-
-        if (inRect(mx, my, ui.rs.clearRect)) {
-            ui.runner.active = false;
-            context.isRunning = false;
-            ui.workspaceBlocks.clear();
-            project.scripts.clear();
             return;
         }
 

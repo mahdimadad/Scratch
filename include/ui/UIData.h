@@ -4,7 +4,6 @@
 #include <SDL2/SDL.h>
 #include <string>
 #include <vector>
-
 #include "core/Block.h"
 
 struct RenderState {
@@ -12,7 +11,10 @@ struct RenderState {
     SDL_Rect stepRect{150, 20, 90, 40};
     SDL_Rect pauseRect{250, 20, 90, 40};
     SDL_Rect resumeRect{350, 20, 90, 40};
-    SDL_Rect clearRect{450, 20, 90, 40};
+
+    SDL_Rect newRect{450, 20, 90, 40};
+    SDL_Rect saveRect{550, 20, 90, 40};
+    SDL_Rect loadRect{650, 20, 90, 40};
 
     SDL_Rect leftPanelRect{20, 80, 160, 580};
     SDL_Rect blockPanelRect{190, 80, 240, 580};
