@@ -14,39 +14,38 @@ int evalValue(Block *expr, Context &context) {
         if (expr->text.empty()) return 0;
         return context.variables[expr->text];
     }
+    if (expr->type == ReporterSize) {
+        return context.sprite.sizePercent;
+    }
+    if (expr->type == ReporterCostumeNumber) {
+        return context.sprite.costumes.empty() ? 0 : (context.sprite.costumeIndex + 1);
+    }
+    if (expr->type == ReporterBackdropNumber) {
+        return context.backdrops.empty() ? 0 : (context.backdropIndex + 1);
+    }
     if (expr->type == Add) {
-        return evalValue(expr->children[0], context)
-             + evalValue(expr->children[1], context);
+        if (expr->children.size() < 2) return 0;
+        return evalValue(expr->children[0], context) + evalValue(expr->children[1], context);
     }
-
     if (expr->type == Sub) {
-        return evalValue(expr->children[0], context)
-             - evalValue(expr->children[1], context);
+        if (expr->children.size() < 2) return 0;
+        return evalValue(expr->children[0], context) - evalValue(expr->children[1], context);
     }
-
     if (expr->type == Mul) {
-        return evalValue(expr->children[0], context)
-             * evalValue(expr->children[1], context);
+        if (expr->children.size() < 2) return 0;
+        return evalValue(expr->children[0], context) * evalValue(expr->children[1], context);
     }
-
     if (expr->type == Div) {
-        int rhs = evalValue(expr->children[1], context);
-        if (rhs == 0) {
+        if (expr->children.size() < 2) return 0;
+        int a = evalValue(expr->children[0], context);
+        int b = evalValue(expr->children[1], context);
+        if (b == 0) {
             Logger::log(LOG_WARNING, "DIV", "Division by zero");
             return 0;
         }
-        return evalValue(expr->children[0], context) / rhs;
+        return safeDiv(a, b);
     }
-    switch (expr->type) {
-        case Number: if (!expr->parameters.empty())return expr->parameters[0];
-            return 0;
-        case VariableValue: return context.variables[expr->text];
-        case Add: return evalValue(expr->children[0], context) + evalValue(expr->children[1], context);
-        case Sub: return evalValue(expr->children[0], context) - evalValue(expr->children[1], context);
-        case Mul: return evalValue(expr->children[0], context) * evalValue(expr->children[1], context);
-        case Div: return safeDiv(evalValue(expr->children[0], context), evalValue(expr->children[1], context));
-        default: return 0;
-    }
+    return 0;
 }
 bool evalBool(Block *expr, Context &context) {
     if (!expr) return false;
@@ -63,24 +62,19 @@ bool evalBool(Block *expr, Context &context) {
         return evalBool(expr->children[0], context) || evalBool(expr->children[1], context);
     }
     switch (expr->type) {
-        case Equal: return evalValue(expr->children[0], context) == evalValue(expr->children[1], context);
-        case Greater: return evalValue(expr->children[0], context) > evalValue(expr->children[1], context);
-        case Less: return evalValue(expr->children[0], context) < evalValue(expr->children[1], context);
-        case And: return evalBool(expr->children[0], context) && evalBool(expr->children[1], context);
-        case Or: return evalBool(expr->children[0], context) || evalBool(expr->children[1], context);
-        case Not: return !evalBool(expr->children[0], context);
-        default: return false;
+        case Equal:
+            if (expr->children.size() < 2) return false;
+            return evalValue(expr->children[0], context) == evalValue(expr->children[1], context);
+        case Greater:
+            if (expr->children.size() < 2) return false;
+            return evalValue(expr->children[0], context) > evalValue(expr->children[1], context);
+        case Less:
+            if (expr->children.size() < 2) return false;
+            return evalValue(expr->children[0], context) < evalValue(expr->children[1], context);
+        default:
+            return false;
     }
 }
 int evalInt(Block *expr, Context &context) {
-    if (!expr) return 0;
-    if (expr->type == NumberLiteral) {
-        if (expr->parameters.empty()) return 0;
-        return expr->parameters[0];
-    }
-    if (expr->type == VariableValue) {
-        if (expr->text.empty()) return 0;
-        return context.variables[expr->text];
-    }
-    return 0;
+    return evalValue(expr, context);
 }
