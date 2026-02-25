@@ -2,8 +2,6 @@
 #include <SDL2/SDL_ttf.h>
 #include <iostream>
 
-
-
 bool initText(TextSystem& ts,const char* fontPath, int fontSize) {
     if (TTF_Init()!=0) {
         std::cout<<"TTF_Init failed: "<<TTF_GetError()<<std::endl;
@@ -30,12 +28,10 @@ void destroyText(TextSystem& ts) {
     ts.ready=false;
 }
 
-
-void drawText(SDL_Renderer* ren, TextSystem& ts,int x, int y, const std::string& text) {
+void drawTextColored(SDL_Renderer* ren, TextSystem& ts,int x, int y, const std::string& text, SDL_Color color) {
     if (!ts.ready||!ts.font) {
         return;
     }
-    SDL_Color color{255,255,255,255};
     SDL_Surface* surf=TTF_RenderUTF8_Blended(ts.font,text.c_str(),color);
     if (!surf) {
         return;
@@ -54,4 +50,12 @@ void drawText(SDL_Renderer* ren, TextSystem& ts,int x, int y, const std::string&
     SDL_FreeSurface(surf);
     SDL_RenderCopy(ren,tex,nullptr,&dst);
     SDL_DestroyTexture(tex);
+<<<<<<< HEAD
+=======
+}
+
+void drawText(SDL_Renderer* ren, TextSystem& ts,int x, int y, const std::string& text) {
+    SDL_Color color{255,255,255,255};
+    drawTextColored(ren, ts, x, y, text, color);
+>>>>>>> feature/looks-ui
 }

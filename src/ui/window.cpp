@@ -9,8 +9,7 @@ bool initWindow(Window& w,const char* title,int width,int height) {
         std::cout<<"SDL_Init failed: "<<SDL_GetError()<<std::endl;
         return false;
     }
-    w.window=SDL_CreateWindow(title,SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,w.width,w.height,SDL_WINDOW_SHOWN);
-    if (!w.window) {
+w.window=SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w.width, w.height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);    if (!w.window) {
         std::cout<<"Create window failed: "<<SDL_GetError()<<std::endl;
         return false;
     }

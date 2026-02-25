@@ -33,6 +33,8 @@ struct UIManager {
     BlockUI draggedBlock;
     int dragBlockOffX = 0;
     int dragBlockOffY = 0;
+
+    int paletteScroll[5] = {0, 0, 0, 0, 0};
 };
 
 void initUIPalette(UIManager& ui);
