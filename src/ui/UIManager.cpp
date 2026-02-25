@@ -365,6 +365,101 @@ void initUIPalette(UIManager& ui) {
     {
         yy = y;
 
+        BlockUI l;
+        l.category = CAT_LOOKS;
+        l.cr = 140; l.cg = 90; l.cb = 210;
+
+        BlockUI show = l;
+        show.coreType = (int)Show;
+        show.label = "show";
+        push(show);
+
+        BlockUI hide = l;
+        hide.coreType = (int)Hide;
+        hide.label = "hide";
+        push(hide);
+
+        BlockUI say = l;
+        say.coreType = (int)Say;
+        say.label = "say hello";
+        say.text = "hello";
+        push(say);
+
+        BlockUI say2 = l;
+        say2.coreType = (int)Say;
+        say2.label = "say wow";
+        say2.text = "wow!";
+        push(say2);
+
+        BlockUI sayFor = l;
+        sayFor.coreType = (int)SayForSeconds;
+        sayFor.label = "say hi for 2 seconds";
+        sayFor.text = "hi";
+        sayFor.params = {2};
+        push(sayFor);
+
+        BlockUI think = l;
+        think.coreType = (int)Think;
+        think.label = "think hmm";
+        think.text = "hmm...";
+        push(think);
+
+        BlockUI thinkFor = l;
+        thinkFor.coreType = (int)ThinkForSeconds;
+        thinkFor.label = "think for 2 seconds";
+        thinkFor.text = "...";
+        thinkFor.params = {2};
+        push(thinkFor);
+
+        BlockUI setSize100 = l;
+        setSize100.coreType = (int)SetSize;
+        setSize100.label = "set size to 100%";
+        setSize100.params = {100};
+        push(setSize100);
+
+        BlockUI setSize200 = l;
+        setSize200.coreType = (int)SetSize;
+        setSize200.label = "set size to 200%";
+        setSize200.params = {200};
+        push(setSize200);
+
+        BlockUI changeSize20 = l;
+        changeSize20.coreType = (int)ChangeSize;
+        changeSize20.label = "change size by 20";
+        changeSize20.params = {20};
+        push(changeSize20);
+
+        BlockUI changeSize_20 = l;
+        changeSize_20.coreType = (int)ChangeSize;
+        changeSize_20.label = "change size by -20";
+        changeSize_20.params = {-20};
+        push(changeSize_20);
+
+        BlockUI nextCostume = l;
+        nextCostume.coreType = (int)NextCostume;
+        nextCostume.label = "next costume";
+        push(nextCostume);
+
+        BlockUI nextBackdrop = l;
+        nextBackdrop.coreType = (int)NextBackdrop;
+        nextBackdrop.label = "next backdrop";
+        push(nextBackdrop);
+
+        BlockUI clearFx = l;
+        clearFx.coreType = (int)ClearEffects;
+        clearFx.label = "clear graphic effects";
+        push(clearFx);
+
+        BlockUI colorFx = l;
+        colorFx.coreType = (int)ChangeColorEffect;
+        colorFx.label = "change color effect by 25";
+        colorFx.params = {25};
+        push(colorFx);
+    }
+
+    {
+        yy = y;
+
         BlockUI v;
         v.category = CAT_VARIABLES;
         v.cr = 240; v.cg = 150; v.cb = 40;
@@ -466,12 +561,89 @@ void initUIPalette(UIManager& ui) {
         push(call);
     }
 }
+static void layoutUI(RenderState& rs, int ww, int hh) {
+    int margin = 20;
+    int topH = 60;
+    int panelsY = margin + topH;
+    int panelsH = hh - panelsY - margin;
+
+    int leftW = 160;
+    int blocksW = 240;
+    int gap = 10;
+
+    rs.greenFlagRect = SDL_Rect{margin, margin, 120, 40};
+    rs.stepRect      = SDL_Rect{margin + 130, margin, 90, 40};
+    rs.pauseRect     = SDL_Rect{margin + 230, margin, 90, 40};
+    rs.resumeRect    = SDL_Rect{margin + 330, margin, 90, 40};
+
+    rs.newRect  = SDL_Rect{margin + 440, margin, 90, 40};
+    rs.saveRect = SDL_Rect{margin + 540, margin, 90, 40};
+    rs.loadRect = SDL_Rect{margin + 640, margin, 90, 40};
+
+    rs.leftPanelRect  = SDL_Rect{margin, panelsY, leftW, panelsH};
+    rs.blockPanelRect = SDL_Rect{margin + leftW + gap, panelsY, blocksW, panelsH};
+
+    int stageX = rs.blockPanelRect.x + rs.blockPanelRect.w + gap;
+    int stageW = ww - stageX - margin;
+    if (stageW < 200) stageW = 200;
+    rs.stageRect = SDL_Rect{stageX, panelsY, stageW, panelsH};
+
+    rs.hudRect = SDL_Rect{rs.leftPanelRect.x, rs.leftPanelRect.y + 80, rs.leftPanelRect.w, rs.leftPanelRect.h - 80};
+}
+
+static int clampi2(int v, int lo, int hi) {
+    if (v < lo) return lo;
+    if (v > hi) return hi;
+    return v;
+}
+
+static void clampPaletteScroll(UIManager& ui, int cat) {
+    int baseY = ui.rs.blockPanelRect.y + 12;
+    int visibleH = ui.rs.blockPanelRect.h - 24;
+
+    int maxBottom = baseY;
+    for (const auto& b : ui.paletteBlocks) {
+        if (b.category != cat) continue;
+        int bottom = b.r.y + b.r.h;
+        if (bottom > maxBottom) maxBottom = bottom;
+    }
+
+    int contentH = maxBottom - baseY;
+    int minScroll = visibleH - contentH;
+    if (minScroll > 0) minScroll = 0;
+
+    ui.paletteScroll[cat] = clampi2(ui.paletteScroll[cat], minScroll, 0);
+}
 
 void handleEvent(UIManager &ui, Window &w, Project &project, Context &context, const SDL_Event &e) {
 
     if (e.type == SDL_QUIT) {
         w.running = false;
         return;
+    }
+    if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+        w.width = e.window.data1;
+        w.height = e.window.data2;
+        layoutUI(ui.rs, w.width, w.height);
+        return;
+    }
+    if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_F11) {
+        Uint32 flags = SDL_GetWindowFlags(w.window);
+        bool fs = (flags & SDL_WINDOW_FULLSCREEN_DESKTOP) != 0;
+        SDL_SetWindowFullscreen(w.window, fs ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
+        SDL_GetWindowSize(w.window, &w.width, &w.height);
+        layoutUI(ui.rs, w.width, w.height);
+        return;
+    }
+    if (e.type == SDL_MOUSEWHEEL) {
+        int mx, my;
+        SDL_GetMouseState(&mx, &my);
+        if (inRect(mx, my, ui.rs.blockPanelRect)) {
+            int cat = ui.selectedCategory;
+            ui.paletteScroll[cat] += e.wheel.y * 30;
+            clampPaletteScroll(ui, cat);
+            return;
+        }
     }
 
     if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE) {
@@ -608,16 +780,22 @@ void handleEvent(UIManager &ui, Window &w, Project &project, Context &context, c
         for (int i = 0; i < 5; i++) {
             if (inRect(mx, my, catRowRect(ui.rs, i))) {
                 ui.selectedCategory = i;
+                clampPaletteScroll(ui, i);
                 return;
             }
         }
 
+        int scrollY = ui.paletteScroll[ui.selectedCategory];
         for (auto& b : ui.paletteBlocks) {
-            if (b.category == ui.selectedCategory && inRect(mx, my, b.r)) {
+            if (b.category != ui.selectedCategory) continue;
+            SDL_Rect rr = b.r;
+            rr.y += scrollY;
+            if (inRect(mx, my, rr)) {
                 ui.draggingBlock = true;
                 ui.draggedBlock = b;
-                ui.dragBlockOffX = mx - b.r.x;
-                ui.dragBlockOffY = my - b.r.y;
+                ui.draggedBlock.r = rr;
+                ui.dragBlockOffX = mx - rr.x;
+                ui.dragBlockOffY = my - rr.y;
                 return;
             }
         }

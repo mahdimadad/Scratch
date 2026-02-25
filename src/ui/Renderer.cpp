@@ -41,17 +41,85 @@ static void drawDirectionLine(SDL_Renderer *ren, const SDL_Rect &stage, const Sp
     SDL_RenderDrawLine(ren, c.x, c.y, x2, y2);
 }
 
+static int clampi(int v, int lo, int hi) {
+    if (v < lo) return lo;
+    if (v > hi) return hi;
+    return v;
+}
+
 static void drawSprite(SDL_Renderer *ren, const SDL_Rect &stage, const SpriteState &s) {
     if (!s.visible) return;
     SDL_Point p = toScreen(stage, (int)s.x, (int)s.y);
+
     SDL_Rect r;
-    r.w = 60;
-    r.h = 60;
+    int base = 60;
+    int sz = (int)std::round(base * (s.sizePercent / 100.0f));
+    sz = clampi(sz, 6, 300);
+
+    r.w = sz;
+    r.h = sz;
     r.x = p.x - r.w / 2;
     r.y = p.y - r.h / 2;
-    fillRect(ren, r, 220, 180, 40);
+
+    int rr = clampi(220 + (s.colorEffect % 128), 0, 255);
+    int gg = clampi(180 - (s.colorEffect % 128), 0, 255);
+    int bb = clampi(40 + (s.colorEffect % 64), 0, 255);
+
+    fillRect(ren, r, rr, gg, bb);
     strokeRect(ren, r, 0, 0, 0);
     drawDirectionLine(ren, stage, s);
+}
+
+static void drawTextShadow(SDL_Renderer* ren, TextSystem& text, int x, int y, const std::string& s) {
+    drawText(ren, text, x + 1, y + 1, s);
+    drawText(ren, text, x, y, s);
+}
+
+static void drawBubble(SDL_Renderer *ren, TextSystem &text, const SDL_Rect &stage, const SpriteState &s) {
+    if (s.bubbleText.empty()) return;
+
+    SDL_Point p = toScreen(stage, (int)s.x, (int)s.y);
+
+    int paddingX = 10;
+    int paddingY = 8;
+    int w = 260;
+    int h = 48;
+
+    SDL_Rect b;
+    b.w = w;
+    b.h = h;
+    b.x = p.x - w / 2;
+    b.y = p.y - 60 - h - 12;
+
+    if (b.y < stage.y + 6) b.y = p.y + 60;
+
+    int br, bg, bb;
+    int rr, rg, rb;
+
+    if (s.bubbleIsThink) {
+        br = 225; bg = 235; bb = 255;
+        rr = 45;  rg = 70;  rb = 140;
+    } else {
+        br = 255; bg = 255; bb = 255;
+        rr = 60;  rg = 60;  rb = 60;
+    }
+
+    fillRect(ren, b, br, bg, bb);
+    strokeRect(ren, b, rr, rg, rb);
+
+    int tx = b.x + paddingX;
+    int ty = b.y + paddingY;
+
+    SDL_Rect inner = SDL_Rect{b.x + 6, b.y + 6, b.w - 12, b.h - 12};
+    SDL_RenderSetClipRect(ren, &inner);
+
+    SDL_Color shadow{255,255,255,255};
+    SDL_Color fg{0,0,0,255};
+
+    drawTextColored(ren, text, tx + 1, ty + 1, s.bubbleText, shadow);
+    drawTextColored(ren, text, tx, ty, s.bubbleText, fg);
+
+    SDL_RenderSetClipRect(ren, nullptr);
 }
 
 static void drawPanel(SDL_Renderer* ren, const SDL_Rect& r) {
@@ -67,6 +135,14 @@ static const char* catName(int c) {
     return "Variables";
 }
 
+static void catColor(int c, int& r, int& g, int& b) {
+    if (c == CAT_MOTION) { r=70; g=110; b=230; return; }
+    if (c == CAT_LOOKS) { r=140; g=90; b=210; return; }
+    if (c == CAT_EVENTS) { r=220; g=180; b=30; return; }
+    if (c == CAT_CONTROL) { r=170; g=90; b=220; return; }
+    r=240; g=150; b=40;
+}
+
 static void drawCategories(SDL_Renderer* ren, TextSystem& text, const RenderState& rs, int selected) {
     int x = rs.leftPanelRect.x + 12;
     int y = rs.leftPanelRect.y + 12;
@@ -74,10 +150,19 @@ static void drawCategories(SDL_Renderer* ren, TextSystem& text, const RenderStat
 
     for (int i = 0; i < 5; i++) {
         SDL_Rect row{rs.leftPanelRect.x + 8, rs.leftPanelRect.y + 8 + i * h, rs.leftPanelRect.w - 16, h - 6};
-        if (i == selected) fillRect(ren, row, 60, 60, 70);
-        else fillRect(ren, row, 45, 45, 55);
-        strokeRect(ren, row, 110, 110, 110);
-        drawText(ren, text, x, y + i * h, catName(i));
+
+        int r,g,b;
+        catColor(i, r, g, b);
+
+        if (i == selected) fillRect(ren, row, r, g, b);
+        else fillRect(ren, row, (r*70)/100, (g*70)/100, (b*70)/100);
+
+        strokeRect(ren, row, 255, 255, 255);
+
+        int lum = (int)(0.299*r + 0.587*g + 0.114*b);
+        SDL_Color fg = (lum > 140) ? SDL_Color{0,0,0,255} : SDL_Color{255,255,255,255};
+
+        drawTextColored(ren, text, x, y + i * h, catName(i), fg);
     }
 }
 
@@ -93,13 +178,14 @@ static int getVar(const Context& ctx, const std::string& name, int defVal) {
     return it->second;
 }
 
-void renderAll(SDL_Renderer *ren,
-               const RenderState &rs,
-               const Context &context,
+void renderAll(SDL_Renderer* ren,
+               const RenderState& rs,
+               const Context& context,
                bool pausedUI,
-               const Runner &runner,
-               TextSystem &text,
+               const Runner& runner,
+               TextSystem& text,
                int selectedCategory,
+               int paletteScrollY,
                const std::vector<BlockUI>& paletteBlocks,
                const std::vector<BlockUI>& workspaceBlocks,
                bool draggingBlock,
@@ -134,15 +220,23 @@ void renderAll(SDL_Renderer *ren,
 
     drawCategories(ren, text, rs, selectedCategory);
 
+    SDL_RenderSetClipRect(ren, &rs.blockPanelRect);
+
     for (const auto& b : paletteBlocks) {
-        if (b.category == selectedCategory) drawBlock(ren, text, b);
+        if (b.category != selectedCategory) continue;
+        BlockUI bb = b;
+        bb.r.y += paletteScrollY;
+        if (bb.r.y + bb.r.h < rs.blockPanelRect.y) continue;
+        if (bb.r.y > rs.blockPanelRect.y + rs.blockPanelRect.h) continue;
+        drawBlock(ren, text, bb);
     }
+
+    SDL_RenderSetClipRect(ren, nullptr);
 
     for (const auto& b : workspaceBlocks) drawBlock(ren, text, b);
 
     drawSprite(ren, rs.stageRect, context.sprite);
-
-    int hx = rs.stageRect.x + 10;
+drawBubble(ren, text, rs.stageRect, context.sprite);    int hx = rs.stageRect.x + 10;
     int hy = rs.stageRect.y + 10;
     int lineH = 24;
 

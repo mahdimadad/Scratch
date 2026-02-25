@@ -14,5 +14,6 @@ bool initText(TextSystem& ts,const char* fontPath, int fontSize);
 void destroyText(TextSystem& ts);
 
 void drawText(SDL_Renderer* ren, TextSystem& ts,int x, int y, const std::string& text);
+void drawTextColored(SDL_Renderer* ren, TextSystem& ts,int x, int y, const std::string& text, SDL_Color color);
 
 #endif

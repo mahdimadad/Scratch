@@ -44,18 +44,19 @@ int main(int argc, char** argv) {
         }
 
         renderAll(
-            w.renderer,
-            ui.rs,
-            context,
-            ui.pausedUI,
-            ui.runner,
-            ts,
-            ui.selectedCategory,
-            ui.paletteBlocks,
-            ui.workspaceBlocks,
-            ui.draggingBlock,
-            ui.draggedBlock
-        );
+     w.renderer,
+     ui.rs,
+     context,
+     ui.pausedUI,
+     ui.runner,
+     ts,
+     ui.selectedCategory,
+     ui.paletteScroll[ui.selectedCategory],
+     ui.paletteBlocks,
+     ui.workspaceBlocks,
+     ui.draggingBlock,
+     ui.draggedBlock
+ );
 
         SDL_Delay(16);
     }
