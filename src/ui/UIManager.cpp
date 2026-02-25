@@ -29,7 +29,7 @@ static void clampSpriteToStage(const SDL_Rect &stage, SpriteState &s) {
 
 static bool inSpriteOnScreen(const SDL_Rect &stage, const SpriteState &s, int mx, int my) {
     if (!s.visible) return false;
-    SDL_Point p = toScreenPoint(stage, (int) s.x, (int) s.y);
+    SDL_Point p = toScreenPoint(stage, (int)s.x, (int)s.y);
     SDL_Rect r;
     r.w = 60;
     r.h = 60;
@@ -45,6 +45,11 @@ static void screenToScratch(const SDL_Rect &stage, int mx, int my, int &outX, in
     outY = cy - my;
 }
 
+static void normalizeDirection(int &d) {
+    d %= 360;
+    if (d < 0) d += 360;
+}
+
 void handleEvent(UIManager &ui, Window &w, Project &project, Context &context, const SDL_Event &e) {
     if (e.type == SDL_QUIT) {
         w.running = false;
@@ -56,9 +61,42 @@ void handleEvent(UIManager &ui, Window &w, Project &project, Context &context, c
         return;
     }
 
-    if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_d) {
+    if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_t) {
         ui.spriteDraggable = !ui.spriteDraggable;
         ui.draggingSprite = false;
+        return;
+    }
+
+    if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_a) {
+        context.sprite.direction -= 10;
+        normalizeDirection(context.sprite.direction);
+        return;
+    }
+
+    if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_d) {
+        context.sprite.direction += 10;
+        normalizeDirection(context.sprite.direction);
+        return;
+    }
+
+    if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_UP) {
+        context.sprite.y += 10;
+        clampSpriteToStage(ui.rs.stageRect, context.sprite);
+        return;
+    }
+    if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_DOWN) {
+        context.sprite.y -= 10;
+        clampSpriteToStage(ui.rs.stageRect, context.sprite);
+        return;
+    }
+    if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_LEFT) {
+        context.sprite.x -= 10;
+        clampSpriteToStage(ui.rs.stageRect, context.sprite);
+        return;
+    }
+    if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_RIGHT) {
+        context.sprite.x += 10;
+        clampSpriteToStage(ui.rs.stageRect, context.sprite);
         return;
     }
 
@@ -98,8 +136,8 @@ void handleEvent(UIManager &ui, Window &w, Project &project, Context &context, c
             ui.draggingSprite = true;
             int sx, sy;
             screenToScratch(ui.rs.stageRect, mx, my, sx, sy);
-            ui.dragOffsetX = (int) context.sprite.x - sx;
-            ui.dragOffsetY = (int) context.sprite.y - sy;
+            ui.dragOffsetX = (int)context.sprite.x - sx;
+            ui.dragOffsetY = (int)context.sprite.y - sy;
             return;
         }
     }
@@ -110,8 +148,8 @@ void handleEvent(UIManager &ui, Window &w, Project &project, Context &context, c
             int my = e.motion.y;
             int sx, sy;
             screenToScratch(ui.rs.stageRect, mx, my, sx, sy);
-            context.sprite.x = (float) (sx + ui.dragOffsetX);
-            context.sprite.y = (float) (sy + ui.dragOffsetY);
+            context.sprite.x = (float)(sx + ui.dragOffsetX);
+            context.sprite.y = (float)(sy + ui.dragOffsetY);
             clampSpriteToStage(ui.rs.stageRect, context.sprite);
             return;
         }
