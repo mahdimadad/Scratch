@@ -2,25 +2,25 @@
 #define UI_RENDERER_H
 
 #include <SDL2/SDL.h>
+#include <vector>
 #include <string>
-#include "core/Context.h"
-#include "core/Runner.h"
+
+#include "ui/UIData.h"
 #include "ui/Text.h"
 
-struct RenderState {
-    SDL_Rect greenFlagRect{20, 20, 120, 40};
-    SDL_Rect stepRect{150, 20, 90, 40};
-    SDL_Rect pauseRect{250, 20, 90, 40};
-    SDL_Rect resumeRect{350, 20, 90, 40};
-    SDL_Rect stageRect{200, 80, 760, 580};
-    SDL_Rect hudRect{20, 80, 170, 300};
-};
+#include "core/Context.h"
+#include "core/Runner.h"
 
 void renderAll(SDL_Renderer* ren,
                const RenderState& rs,
                const Context& context,
                bool pausedUI,
                const Runner& runner,
-               TextSystem& text);
+               TextSystem& text,
+               int selectedCategory,
+               const std::vector<BlockUI>& paletteBlocks,
+               const std::vector<BlockUI>& workspaceBlocks,
+               bool draggingBlock,
+               const BlockUI& draggedBlock);
 
 #endif
