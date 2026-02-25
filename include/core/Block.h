@@ -3,12 +3,13 @@
 #include <vector>
 #include <string>
 using namespace std;
-enum BlockType { Move, Turn, Repeat, If , CustomFunctionCall , SetVariable , ChangeVariable , Wait , Forever , CallFunction , DefineFunction };
+enum BlockType { Move, Turn , NumberLiteral , Repeat , If , RestoreVars , CustomFunctionCall , SetVariable , ChangeVariable , Wait , Forever , CallFunction , DefineFunction , RepeatUntil , Number , Variable , Add , Sub , Mul , Div , Equal , Greater , Less , And , Or , Not , VariableValue , MessageReceived , Broadcast , BroadcastAndWait , GreenFlagClicked } ;
 struct Block {
+    std::vector<std::string> paramNames;
     BlockType type;
     vector<Block *> children;
     vector<int> parameters;
-    string text;
+    std::string text;
     Block(BlockType t) { type = t; }
 };
 #endif
