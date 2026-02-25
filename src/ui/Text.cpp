@@ -50,12 +50,9 @@ void drawTextColored(SDL_Renderer* ren, TextSystem& ts,int x, int y, const std::
     SDL_FreeSurface(surf);
     SDL_RenderCopy(ren,tex,nullptr,&dst);
     SDL_DestroyTexture(tex);
-<<<<<<< HEAD
-=======
 }
 
 void drawText(SDL_Renderer* ren, TextSystem& ts,int x, int y, const std::string& text) {
     SDL_Color color{255,255,255,255};
     drawTextColored(ren, ts, x, y, text, color);
->>>>>>> feature/looks-ui
 }
