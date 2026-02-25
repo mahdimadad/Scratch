@@ -85,17 +85,23 @@ static void rebuildProjectFromWorkspace(const std::vector<BlockUI>& ws, Project&
         }
     };
 
-    std::vector<std::pair<int, Block*>> stack;
+    const int INDENT = 40;
+
+    struct StackItem {
+        int baseX;
+        Block* node;
+    };
+
+    std::vector<StackItem> stack;
 
     auto isContainer = [&](BlockType t) {
         return (t == Repeat || t == Forever || t == DefineFunction);
     };
 
-    auto addNode = [&](int indentX, Block* node) {
-        const int EPS = 6;
-        while (!stack.empty() && indentX <= stack.back().first + EPS) stack.pop_back();
+    auto addNode = [&](int x, Block* node) {
+        while (!stack.empty() && x <= stack.back().baseX) stack.pop_back();
         if (stack.empty()) cur.blocks.push_back(node);
-        else stack.back().second->children.push_back(node);
+        else stack.back().node->children.push_back(node);
     };
 
     auto resetScript = [&]() {
@@ -128,7 +134,12 @@ static void rebuildProjectFromWorkspace(const std::vector<BlockUI>& ws, Project&
 
         addNode(uiBlock.r.x, b);
 
-        if (isContainer(t)) stack.push_back({uiBlock.r.x, b});
+        if (isContainer(t)) {
+            StackItem it;
+            it.baseX = uiBlock.r.x + INDENT;
+            it.node = b;
+            stack.push_back(it);
+        }
 
         hasAnyBlock = true;
     }
@@ -407,6 +418,7 @@ void initUIPalette(UIManager& ui) {
         c_5.label = "change score by -5";
         push(c_5);
     }
+
     {
         yy = y;
 
@@ -436,6 +448,22 @@ void initUIPalette(UIManager& ui) {
         f.coreType = (int)Forever;
         f.label = "forever";
         push(f);
+
+        BlockUI fn;
+        fn.category = CAT_CONTROL;
+        fn.cr = 120; fn.cg = 120; fn.cb = 120;
+
+        BlockUI def = fn;
+        def.coreType = (int)DefineFunction;
+        def.label = "define myfunc";
+        def.text = "myfunc";
+        push(def);
+
+        BlockUI call = fn;
+        call.coreType = (int)CallFunction;
+        call.label = "call myfunc";
+        call.text = "myfunc";
+        push(call);
     }
 }
 
@@ -550,6 +578,7 @@ void handleEvent(UIManager &ui, Window &w, Project &project, Context &context, c
             ui.pausedUI = false;
             context.isRunning = true;
             rebuildProjectFromWorkspace(ui.workspaceBlocks, project);
+            registerFunctions(project, context);
             buildQueueForEvent(project, EVT_GreenFlagClicked, context, ui.runner);
             return;
         }
@@ -558,6 +587,7 @@ void handleEvent(UIManager &ui, Window &w, Project &project, Context &context, c
             if (!ui.runner.active) {
                 context.isRunning = true;
                 rebuildProjectFromWorkspace(ui.workspaceBlocks, project);
+                registerFunctions(project, context);
                 buildQueueForEvent(project, EVT_GreenFlagClicked, context, ui.runner);
             }
             stepRunner(context, ui.runner);
