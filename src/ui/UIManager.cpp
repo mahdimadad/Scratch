@@ -85,27 +85,51 @@ static void rebuildProjectFromWorkspace(const std::vector<BlockUI>& ws, Project&
         }
     };
 
+    std::vector<std::pair<int, Block*>> stack;
+
+    auto isContainer = [&](BlockType t) {
+        return (t == Repeat || t == Forever || t == DefineFunction);
+    };
+
+    auto addNode = [&](int indentX, Block* node) {
+        const int EPS = 6;
+        while (!stack.empty() && indentX <= stack.back().first + EPS) stack.pop_back();
+        if (stack.empty()) cur.blocks.push_back(node);
+        else stack.back().second->children.push_back(node);
+    };
+
+    auto resetScript = [&]() {
+        stack.clear();
+        cur.eventType = EVT_GreenFlagClicked;
+        cur.messageName = "";
+    };
+
     for (const auto& uiBlock : ordered) {
         if (uiBlock.coreType == HAT_GREEN) {
             hasHat = true;
             flush();
-            cur.eventType = EVT_GreenFlagClicked;
-            cur.messageName = "";
+            resetScript();
             continue;
         }
 
         if (uiBlock.coreType == HAT_RECEIVE) {
             hasHat = true;
             flush();
+            stack.clear();
             cur.eventType = EVT_MessageReceived;
             cur.messageName = uiBlock.text.empty() ? "msg1" : uiBlock.text;
             continue;
         }
 
-        Block* b = new Block((BlockType)uiBlock.coreType);
+        BlockType t = (BlockType)uiBlock.coreType;
+        Block* b = new Block(t);
         b->parameters = uiBlock.params;
         b->text = uiBlock.text;
-        cur.blocks.push_back(b);
+
+        addNode(uiBlock.r.x, b);
+
+        if (isContainer(t)) stack.push_back({uiBlock.r.x, b});
+
         hasAnyBlock = true;
     }
 
@@ -382,6 +406,36 @@ void initUIPalette(UIManager& ui) {
         c_5.params = {-5};
         c_5.label = "change score by -5";
         push(c_5);
+    }
+    {
+        yy = y;
+
+        BlockUI c;
+        c.category = CAT_CONTROL;
+        c.cr = 170; c.cg = 90; c.cb = 220;
+
+        BlockUI r5 = c;
+        r5.coreType = (int)Repeat;
+        r5.params = {5};
+        r5.label = "repeat 5";
+        push(r5);
+
+        BlockUI r10 = c;
+        r10.coreType = (int)Repeat;
+        r10.params = {10};
+        r10.label = "repeat 10";
+        push(r10);
+
+        BlockUI r20 = c;
+        r20.coreType = (int)Repeat;
+        r20.params = {20};
+        r20.label = "repeat 20";
+        push(r20);
+
+        BlockUI f = c;
+        f.coreType = (int)Forever;
+        f.label = "forever";
+        push(f);
     }
 }
 
