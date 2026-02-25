@@ -87,6 +87,12 @@ static void drawBlock(SDL_Renderer* ren, TextSystem& text, const BlockUI& b) {
     drawText(ren, text, b.r.x + 10, b.r.y + 10, b.label);
 }
 
+static int getVar(const Context& ctx, const std::string& name, int defVal) {
+    auto it = ctx.variables.find(name);
+    if (it == ctx.variables.end()) return defVal;
+    return it->second;
+}
+
 void renderAll(SDL_Renderer *ren,
                const RenderState &rs,
                const Context &context,
@@ -139,6 +145,9 @@ void renderAll(SDL_Renderer *ren,
     drawText(ren, text, hx, hy + lineH * 2, "Index: " + std::to_string((int)runner.index));
     drawText(ren, text, hx, hy + lineH * 3, "Paused: " + std::string(pausedUI ? "YES" : "NO"));
     drawText(ren, text, hx, hy + lineH * 4, "dir = " + std::to_string((int)context.sprite.direction));
+
+    int score = getVar(context, "score", 0);
+    drawText(ren, text, hx, hy + lineH * 5, "score = " + std::to_string(score));
 
     if (draggingBlock) drawBlock(ren, text, draggedBlock);
 
