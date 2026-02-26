@@ -61,7 +61,6 @@ static SDL_Rect catRowRect(const RenderState& rs, int idx) {
     SDL_Rect row{rs.leftPanelRect.x + 8, rs.leftPanelRect.y + 8 + idx * h, rs.leftPanelRect.w - 16, h - 6};
     return row;
 }
-
 static void rebuildProjectFromWorkspace(const std::vector<BlockUI>& ws, Project& project) {
     project.scripts.clear();
 
@@ -104,26 +103,24 @@ static void rebuildProjectFromWorkspace(const std::vector<BlockUI>& ws, Project&
         else stack.back().node->children.push_back(node);
     };
 
-    auto resetScript = [&]() {
+    auto startScript = [&](EventType evt, const std::string& msg) {
+        flush();
         stack.clear();
-        cur.eventType = EVT_GreenFlagClicked;
-        cur.messageName = "";
+        cur.eventType = evt;
+        cur.messageName = msg;
     };
 
     for (const auto& uiBlock : ordered) {
         if (uiBlock.coreType == HAT_GREEN) {
             hasHat = true;
-            flush();
-            resetScript();
+            startScript(EVT_GreenFlagClicked, "");
             continue;
         }
 
         if (uiBlock.coreType == HAT_RECEIVE) {
             hasHat = true;
-            flush();
-            stack.clear();
-            cur.eventType = EVT_MessageReceived;
-            cur.messageName = uiBlock.text.empty() ? "msg1" : uiBlock.text;
+            std::string msg = uiBlock.text.empty() ? "msg1" : uiBlock.text;
+            startScript(EVT_MessageReceived, msg);
             continue;
         }
 
