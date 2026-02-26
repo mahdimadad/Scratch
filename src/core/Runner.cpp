@@ -19,35 +19,34 @@ static bool checkIfCondition(Block *block, Context &context) {
 }
 static void appendBlockToQueue(Block *block, Context &context, std::vector<Block *> &q) {
     if (!block) return;
+
     if (block->type == Repeat) {
         if (block->parameters.empty()) return;
         int times = block->parameters[0];
+        if (times < 0) times = 0;
         for (int i = 0; i < times; i++) {
-            for (Block *child: block->children) { appendBlockToQueue(child, context, q); }
+            for (Block *child : block->children) {
+                appendBlockToQueue(child, context, q);
+            }
         }
         return;
     }
-    if (block->type == If) {
-        q.push_back(block);
-        return;
-    }
-    if (block->type == Forever) {
-        q.push_back(block);
-        return;
-    }
+
     if (block->type == DefineFunction) {
         context.functionTable[block->text] = block;
         return;
     }
-    if (block->type == RepeatUntil) {
-        q.push_back(block);
-        return;
-    }
-    if (block->type == RepeatUntil) {
-        q.push_back(block);
-        return;
-    }
+
     q.push_back(block);
+}
+static void insertExpandedChildren(Context &context, Runner &runner, const std::vector<Block*> &children, int from, int toExclusive) {
+    std::vector<Block*> expanded;
+    for (int i = from; i < toExclusive; i++) {
+        appendBlockToQueue(children[i], context, expanded);
+    }
+    for (int i = (int)expanded.size() - 1; i >= 0; i--) {
+        runner.queue.insert(runner.queue.begin() + runner.index, expanded[i]);
+    }
 }
 void buildQueueForEvent(Project &project, EventType eventType, Context &context, Runner &runner) {
     runner.queue.clear();
@@ -96,9 +95,7 @@ bool stepRunner(Context &context, Runner &runner) {
             if (b->children.size() >= 1) {
                 Block *cond = b->children[0];
                 if (!evalBool(cond, context)) { continue; }
-                for (int i = (int) b->children.size() - 1; i >= 1; i--) {
-                    runner.queue.insert(runner.queue.begin() + runner.index, b->children[i]);
-                }
+                insertExpandedChildren(context, runner, b->children, 1, (int)b->children.size());
                 continue;
             }
             if (b->text.empty() || b->parameters.size() < 2) continue;
@@ -111,16 +108,14 @@ bool stepRunner(Context &context, Runner &runner) {
             if (op == 1) ok = (lhs > rhs);
             if (op == 2) ok = (lhs < rhs);
             if (!ok) continue;
-            for (int i = (int) b->children.size() - 1; i >= 0; i--) {
-                runner.queue.insert(runner.queue.begin() + runner.index, b->children[i]);
-            }
+            insertExpandedChildren(context, runner, b->children, 0, (int)b->children.size());
             continue;
         }
         if (b->type == Forever) {
-            for (int i = (int) b->children.size() - 1; i >= 0; i--) {
-                runner.queue.insert(runner.queue.begin() + runner.index, b->children[i]);
-            }
-            runner.queue.insert(runner.queue.begin() + runner.index + (int) b->children.size(), b);
+            int before = (int)runner.queue.size();
+            insertExpandedChildren(context, runner, b->children, 0, (int)b->children.size());
+            int inserted = (int)runner.queue.size() - before;
+            runner.queue.insert(runner.queue.begin() + runner.index + inserted, b);
             continue;
         }
         if (b->type == IfElse) {
@@ -139,17 +134,13 @@ bool stepRunner(Context &context, Runner &runner) {
             int elseStart = thenEnd;
 
             if (ok) {
-                for (int i = thenEnd - 1; i >= thenStart; i--) {
-                    runner.queue.insert(runner.queue.begin() + runner.index, b->children[i]);
-                }
+                insertExpandedChildren(context, runner, b->children, thenStart, thenEnd);
             } else {
-                for (int i = totalChildren - 1; i >= elseStart; i--) {
-                    runner.queue.insert(runner.queue.begin() + runner.index, b->children[i]);
-                }
+                insertExpandedChildren(context, runner, b->children, elseStart, totalChildren);
             }
             continue;
         }
-        if (b->type == CallFunction) {
+                if (b->type == CallFunction) {
             std::string fname = b->text;
             if (fname.empty()) {
                 continue;
@@ -165,6 +156,7 @@ bool stepRunner(Context &context, Runner &runner) {
                 Logger::log(LOG_WARNING, "FUNC", "Not enough args for: " + fname);
                 continue;
             }
+
             RestoreFrame frame;
             for (int i = 0; i < paramCount; i++) {
                 const std::string &pname = def->paramNames[i];
@@ -183,14 +175,23 @@ bool stepRunner(Context &context, Runner &runner) {
                 int value = evalInt(b->children[i], context);
                 context.variables[pname] = value;
             }
+
             int frameId = (int)context.restoreStack.size();
             context.restoreStack.push_back(frame);
+
             Block *restore = new Block(RestoreVars);
             restore->parameters.push_back(frameId);
             runner.queue.insert(runner.queue.begin() + runner.index, restore);
-            for (int i = (int)def->children.size() - 1; i >= 0; i--) {
-                runner.queue.insert(runner.queue.begin() + runner.index, def->children[i]);
+
+            std::vector<Block*> expanded;
+            expanded.reserve(def->children.size());
+            for (Block *ch : def->children) {
+                appendBlockToQueue(ch, context, expanded);
             }
+            for (int i = (int)expanded.size() - 1; i >= 0; i--) {
+                runner.queue.insert(runner.queue.begin() + runner.index, expanded[i]);
+            }
+
             Logger::log(LOG_INFO, "FUNC", "Call " + fname);
             continue;
         }
@@ -199,9 +200,7 @@ bool stepRunner(Context &context, Runner &runner) {
             Block *cond = b->children[0];
             if (evalBool(cond, context)) { continue; }
             runner.queue.insert(runner.queue.begin() + runner.index, b);
-            for (int i = (int) b->children.size() - 1; i >= 1; i--) {
-                runner.queue.insert(runner.queue.begin() + runner.index, b->children[i]);
-            }
+            insertExpandedChildren(context, runner, b->children, 1, (int)b->children.size());
             continue;
         }
         if (b->type == BroadcastAndWait) {
@@ -252,32 +251,26 @@ static bool containsEventBlock(Block *b) {
     }
     return false;
 }
+static void collectDefines(Block *b, Context &context) {
+    if (!b) return;
+
+    if (b->type == DefineFunction) {
+        if (!b->text.empty()) {
+            context.functionTable[b->text] = b;
+        }
+        return;
+    }
+
+    for (Block *ch : b->children) {
+        collectDefines(ch, context);
+    }
+}
+
 void registerFunctions(Project &project, Context &context) {
     context.functionTable.clear();
     for (Script &s : project.scripts) {
         for (Block *b : s.blocks) {
-            if (!b) continue;
-            if (b->type != DefineFunction) continue;
-
-            if (b->text.empty()) {
-                Logger::log(LOG_WARNING, "FUNC", "DefineFunction with empty name ignored");
-                continue;
-            }
-            bool bad = false;
-            for (Block *body : b->children) {
-                if (containsEventBlock(body)) {
-                    bad = true;
-                    break;
-                }
-            }
-            if (bad) {
-                Logger::log(LOG_ERROR, "FUNC", "Event block inside function '" + b->text + "'. Not registered.");
-                continue;
-            }
-            if (context.functionTable.count(b->text)) {
-                Logger::log(LOG_WARNING, "FUNC", "Duplicate function name '" + b->text + "'. Overriding.");
-            }
-            context.functionTable[b->text] = b;
+            collectDefines(b, context);
         }
     }
 }
